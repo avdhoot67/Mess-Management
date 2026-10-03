@@ -12,6 +12,14 @@ MessMate uses four managed services while retaining one application repository:
 
 The API proxy is an authentication boundary, not only a convenience. Browser requests, refresh cookies, and the Google callback use the Vercel origin, avoiding reliance on third-party cookies across unrelated provider domains.
 
+Current release-candidate endpoints:
+
+```text
+Frontend: https://mess-management-ten-henna.vercel.app
+Backend:  https://messmate-api-p95d.onrender.com
+Health:   https://mess-management-ten-henna.vercel.app/api/health
+```
+
 ## Release workflow
 
 Deployment work is prepared on `deployment/production`. After hosted verification, merge that branch into `main`; both Vercel and Render should deploy `main`. Tag the verified release as `v1.0.0` before creating the separate cloud-virtualization coursework branch.
