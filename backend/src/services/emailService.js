@@ -64,7 +64,15 @@ const sendWithBrevo = async ({ to, subject, text, html }) => {
         });
 
         if (!response.ok) {
-            throw new Error(`Brevo email delivery failed with status ${response.status}`);
+            const errorPayload = await response.json().catch(() => null);
+            const errorDetail = [errorPayload?.code, errorPayload?.message]
+                .filter(Boolean)
+                .join(': ');
+
+            throw new Error(
+                `Brevo email delivery failed with status ${response.status}`
+                + (errorDetail ? ` (${errorDetail})` : '')
+            );
         }
     } finally {
         clearTimeout(timeout);
