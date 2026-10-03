@@ -58,10 +58,12 @@ Framework: Vite
 Install command: npm ci
 Build command: npm run build
 Output directory: dist
-Production branch: main
+Initial production branch: deployment/production
 ```
 
-The initial `frontend/vercel.json` supplies the SPA fallback. Deploy it once to reserve the stable `vercel.app` hostname. API calls are not enabled until the Render URL is known.
+Vercel initially selects `main` automatically when the project is imported. In **Project Settings > Environments > Production > Branch Tracking**, change it to `deployment/production` while the hosted release candidate is being verified. After the verified branch is merged, change branch tracking back to `main`.
+
+The initial `frontend/vercel.json` supplies the SPA fallback. Deploy the release-candidate branch once to reserve the stable `vercel.app` hostname. API calls are not enabled until the Render URL is known.
 
 ## 3. Create the Render API
 
