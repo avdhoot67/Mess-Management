@@ -36,7 +36,7 @@ const createTransporter = () => {
     });
 };
 
-const sendWithBrevo = async ({ to, subject, text, html }) => {
+const sendWithBrevo = async ({ to, subject, html }) => {
     if (!isBrevoConfigured()) throw new Error('Brevo email delivery is not configured');
 
     const controller = new AbortController();
@@ -57,7 +57,6 @@ const sendWithBrevo = async ({ to, subject, text, html }) => {
                 },
                 to: [{ email: to }],
                 subject,
-                textContent: text,
                 htmlContent: html
             }),
             signal: controller.signal
