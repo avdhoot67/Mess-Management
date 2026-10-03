@@ -78,6 +78,7 @@ Build command: npm ci --omit=dev
 Start command: npm start
 Health check path: /api/health
 Plan: Free
+Region: Singapore
 ```
 
 Enter secrets only in the Render dashboard. Do not paste them into `render.yaml`, GitHub, screenshots, issues, or documentation.
