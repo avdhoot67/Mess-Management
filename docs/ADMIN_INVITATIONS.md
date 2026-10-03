@@ -2,7 +2,7 @@
 
 ## Current scope
 
-MessMate currently operates one mess. One bootstrap administrator must already exist, and authenticated administrators can invite additional administrators from **Admin → Team & access**.
+MessMate currently operates one mess. One bootstrap administrator must already exist, and authenticated administrators can invite additional administrators from **Admin → Team & access**. Production provisioning uses `npm run admin:bootstrap`; it hashes the supplied password and refuses to replace an existing account.
 
 This is not public admin registration. The public registration endpoint continues to create students only.
 
@@ -41,6 +41,7 @@ Reinviting the same unregistered email replaces its previous invitation token, s
 ## Deliberate limitations
 
 - The bootstrap administrator is still provisioned operationally because unrestricted first-admin signup would allow account takeover of the single mess.
+- `BOOTSTRAP_ADMIN_*` values are one-time operational inputs. Remove them from the shell or provider settings immediately after the first administrator is created.
 - Existing users cannot be converted between student and administrator roles through this flow.
 - Administrator removal, ownership transfer, fine-grained permissions, and audit history are future work.
 - Multi-mess roles will later move from `users.role` into mess memberships.

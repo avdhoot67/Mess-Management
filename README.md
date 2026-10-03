@@ -109,9 +109,10 @@ npm run build
 - [Google authentication](docs/GOOGLE_AUTHENTICATION.md)
 - [Password reset](docs/PASSWORD_RESET.md)
 - [Administrator invitations](docs/ADMIN_INVITATIONS.md)
+- [Deployment guide](docs/DEPLOYMENT.md)
 - [Future multi-mess roadmap](docs/FUTURE_MULTI_MESS_SAAS_ROADMAP.md)
 
 ## Deployment direction
 
-The planned free-tier deployment uses Vercel for the frontend, Render for the Express API, and a MySQL-compatible managed database. Production configuration must use HTTPS, provider-managed secrets, restricted CORS origins, secure cookies, database TLS, and deployed Google OAuth callback URLs.
+The free-tier deployment uses Vercel for the frontend and same-origin API proxy, Render for the Express API, TiDB Cloud Starter for the MySQL-compatible database, and Brevo's HTTPS API for transactional email. See the [deployment guide](docs/DEPLOYMENT.md) for configuration, first-admin provisioning, verification, and rollback procedures.
 

@@ -17,13 +17,18 @@ const getGoogleClient = () => {
     return new OAuth2Client(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_CALLBACK_URL);
 };
 
-const cookieOptions = (maxAge) => ({
-    httpOnly: true,
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    maxAge,
-    path: '/api/auth/google'
-});
+const cookieOptions = (maxAge) => {
+    const secure = process.env.AUTH_COOKIE_SECURE === 'true'
+        || (process.env.AUTH_COOKIE_SECURE === undefined && process.env.NODE_ENV === 'production');
+
+    return {
+        httpOnly: true,
+        sameSite: process.env.AUTH_COOKIE_SAME_SITE || (secure ? 'none' : 'lax'),
+        secure,
+        maxAge,
+        path: '/api/auth/google'
+    };
+};
 
 const createAuthorizationUrl = (res, { mode = 'signin', userId = null } = {}) => {
     const state = jwt.sign(

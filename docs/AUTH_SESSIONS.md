@@ -12,14 +12,18 @@ MessMate keeps access tokens out of browser storage.
 
 Development defaults use `AUTH_COOKIE_SECURE=false` and `AUTH_COOKIE_SAME_SITE=lax`.
 
-For separately hosted production frontend and API origins, set:
+The free-tier deployment keeps browser API requests on the Vercel frontend origin and uses a Vercel rewrite to proxy `/api/*` to Render. This avoids depending on third-party cookies even though the API process runs on another provider.
+
+Set:
 
 ```env
 NODE_ENV=production
 AUTH_COOKIE_SECURE=true
-AUTH_COOKIE_SAME_SITE=none
+AUTH_COOKIE_SAME_SITE=lax
 FRONTEND_URL=https://app.example.com
 CORS_ALLOWED_ORIGINS=https://app.example.com
 ```
 
-HTTPS is mandatory when `SameSite=None` is used. Do not expose the refresh token to JavaScript or store access tokens in `localStorage` or `sessionStorage`.
+The Google OAuth callback must also use the Vercel `/api/auth/google/callback` URL so its state cookie is created and returned through the same public origin. The Render service remains the upstream application server, but browsers use the Vercel URL.
+
+HTTPS is mandatory for production secure cookies. Do not expose the refresh token to JavaScript or store access tokens in `localStorage` or `sessionStorage`.

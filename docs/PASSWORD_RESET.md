@@ -20,10 +20,11 @@
 
 ## Email configuration
 
-Add these values to `backend/.env` using credentials from the chosen SMTP provider:
+Local development can continue using SMTP:
 
 ```text
 FRONTEND_URL=http://localhost:5173
+EMAIL_PROVIDER=smtp
 SMTP_HOST=smtp.example.com
 SMTP_PORT=465
 SMTP_SECURE=true
@@ -33,6 +34,17 @@ EMAIL_FROM="MessMate <noreply@example.com>"
 ```
 
 Port `465` normally uses `SMTP_SECURE=true`. Providers using STARTTLS commonly use port `587` with `SMTP_SECURE=false`. Never commit real SMTP credentials; `backend/.env.example` contains safe placeholders.
+
+Render free web services block outbound SMTP ports. The production deployment therefore uses Brevo's transactional HTTPS API:
+
+```text
+EMAIL_PROVIDER=brevo
+BREVO_API_KEY=provider_managed_secret
+EMAIL_FROM_NAME=MessMate
+EMAIL_FROM_ADDRESS=verified-sender@example.com
+```
+
+The Brevo key belongs only in Render's environment settings. `EMAIL_FROM_ADDRESS` must be a sender verified in Brevo. The application sends the same text and HTML content through either transport, so password-reset and administrator-invitation behavior remains provider-independent.
 
 Before testing reset links from another phone or computer, replace `FRONTEND_URL` with the deployed frontend's public HTTPS origin. A localhost URL always refers to the device opening the email, so it cannot reach the development server running on another machine.
 

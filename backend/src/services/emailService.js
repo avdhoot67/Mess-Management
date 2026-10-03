@@ -1,6 +1,8 @@
 const nodemailer = require('nodemailer');
 
-const isEmailConfigured = () => Boolean(
+const getProvider = () => String(process.env.EMAIL_PROVIDER || 'smtp').trim().toLowerCase();
+
+const isSmtpConfigured = () => Boolean(
     process.env.SMTP_HOST &&
     process.env.SMTP_PORT &&
     process.env.SMTP_USER &&
@@ -8,8 +10,18 @@ const isEmailConfigured = () => Boolean(
     process.env.EMAIL_FROM
 );
 
+const isBrevoConfigured = () => Boolean(
+    process.env.BREVO_API_KEY &&
+    process.env.EMAIL_FROM_ADDRESS &&
+    process.env.EMAIL_FROM_NAME
+);
+
+const isEmailConfigured = () => getProvider() === 'brevo'
+    ? isBrevoConfigured()
+    : getProvider() === 'smtp' && isSmtpConfigured();
+
 const createTransporter = () => {
-    if (!isEmailConfigured()) {
+    if (!isSmtpConfigured()) {
         throw new Error('SMTP email delivery is not configured');
     }
 
@@ -24,6 +36,54 @@ const createTransporter = () => {
     });
 };
 
+const sendWithBrevo = async ({ to, subject, text, html }) => {
+    if (!isBrevoConfigured()) throw new Error('Brevo email delivery is not configured');
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
+    try {
+        const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+            method: 'POST',
+            headers: {
+                accept: 'application/json',
+                'api-key': process.env.BREVO_API_KEY,
+                'content-type': 'application/json'
+            },
+            body: JSON.stringify({
+                sender: {
+                    name: process.env.EMAIL_FROM_NAME,
+                    email: process.env.EMAIL_FROM_ADDRESS
+                },
+                to: [{ email: to }],
+                subject,
+                textContent: text,
+                htmlContent: html
+            }),
+            signal: controller.signal
+        });
+
+        if (!response.ok) {
+            throw new Error(`Brevo email delivery failed with status ${response.status}`);
+        }
+    } finally {
+        clearTimeout(timeout);
+    }
+};
+
+const sendEmail = async (message) => {
+    const provider = getProvider();
+
+    if (provider === 'brevo') return sendWithBrevo(message);
+    if (provider !== 'smtp') throw new Error(`Unsupported email provider: ${provider}`);
+
+    const transporter = createTransporter();
+    return transporter.sendMail({
+        from: process.env.EMAIL_FROM,
+        ...message
+    });
+};
+
 const escapeHtml = (value) => String(value)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -32,12 +92,10 @@ const escapeHtml = (value) => String(value)
     .replace(/'/g, '&#039;');
 
 const sendPasswordResetEmail = async ({ email, name, resetUrl }) => {
-    const transporter = createTransporter();
     const safeName = escapeHtml(name || 'there');
     const safeResetUrl = escapeHtml(resetUrl);
 
-    await transporter.sendMail({
-        from: process.env.EMAIL_FROM,
+    await sendEmail({
         to: email,
         subject: 'Reset your MessMate password',
         text: `Hello ${name || 'there'},\n\nUse this link to reset your MessMate password:\n${resetUrl}\n\nThis link expires in 30 minutes and can be used once. If you did not request it, you can ignore this email.`,
@@ -56,12 +114,10 @@ const sendPasswordResetEmail = async ({ email, name, resetUrl }) => {
 };
 
 const sendAdminInvitationEmail = async ({ email, inviterName, invitationUrl }) => {
-    const transporter = createTransporter();
     const safeInviterName = escapeHtml(inviterName || 'A MessMate administrator');
     const safeInvitationUrl = escapeHtml(invitationUrl);
 
-    await transporter.sendMail({
-        from: process.env.EMAIL_FROM,
+    await sendEmail({
         to: email,
         subject: 'You are invited to administer MessMate',
         text: `${inviterName || 'A MessMate administrator'} invited you to join the MessMate admin team.\n\nCreate your administrator account here:\n${invitationUrl}\n\nThis invitation expires in 48 hours and can be used once. If you were not expecting it, you can ignore this email.`,

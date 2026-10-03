@@ -10,7 +10,7 @@
 ## Sign-in flow
 
 1. The frontend opens `GET /api/auth/google`.
-2. The backend creates a signed, short-lived OAuth state value, stores the same value in an HttpOnly cookie, and redirects to Google. The cookie is `SameSite=Lax` locally and `SameSite=None; Secure` in production so separately hosted HTTPS frontend and API domains remain supported.
+2. The backend creates a signed, short-lived OAuth state value, stores the same value in an HttpOnly cookie, and redirects to Google. The production cookie is secure and uses the configured `AUTH_COOKIE_SAME_SITE` policy.
 3. Google returns to `GET /api/auth/google/callback`.
 4. The backend checks the state value and cookie, exchanges the authorization code, and verifies the ID token with `google-auth-library`.
 5. The backend finds the user by `google_sub` or creates a new student account. An existing unlinked email is rejected with instructions to use explicit linking.
@@ -36,4 +36,4 @@ Backend environment variables:
 - `FRONTEND_URL` (optional locally; defaults to `http://localhost:5173`)
 - `JWT_SECRET`
 
-Google Cloud must list the callback URL as an authorized redirect URI. Production must use the deployed HTTPS backend callback and frontend origin.
+Google Cloud must list the callback URL as an authorized redirect URI. In the Vercel/Render deployment, use the public Vercel proxy callback, for example `https://app.example.com/api/auth/google/callback`. Vercel forwards that request to Render while the browser retains a first-party cookie relationship with the public application origin.

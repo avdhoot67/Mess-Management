@@ -1,4 +1,7 @@
 require('dotenv').config();
+const { validateServerEnvironment } = require('./config/environment');
+validateServerEnvironment();
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -46,6 +49,10 @@ app.use(cors({
 }));
 app.use(cookieParser());
 app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '32kb' }));
+app.use('/api', (req, res, next) => {
+    res.set('Cache-Control', 'no-store');
+    next();
+});
 
 const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
