@@ -23,6 +23,17 @@ Deployment work is prepared on `deployment/production`. After hosted verificatio
 3. Create a strong database password and keep all connection values outside Git.
 4. Connect with a MySQL-compatible client and apply `database/schema.sql`.
 5. Do not apply `database/seed.sql` to production; it contains development accounts and time-specific sample records.
+6. Do not apply the individual files under `database/migrations/` after applying the current consolidated schema; their changes are already included in `database/schema.sql`.
+
+Verify the clean schema before deploying the API:
+
+```sql
+USE mess_management;
+SHOW TABLES;
+SELECT COUNT(*) AS user_count FROM users;
+```
+
+The schema contains 14 application tables, including both AI feedback support tables (`feedback_insight_runs` and `feedback_insight_quota_events`). A clean production database returns `0` for `user_count`.
 
 The Render database variables are:
 
