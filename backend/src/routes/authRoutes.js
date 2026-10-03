@@ -19,9 +19,32 @@ const { requestPasswordReset, resetPassword } = require('../controllers/password
 const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 10,
+    skipSuccessfulRequests: true,
     message: {
         success: false,
         message: 'Too many login attempts. Please try again later.'
+    },
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+const googleAuthLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 30,
+    message: {
+        success: false,
+        message: 'Too many Google authentication attempts. Please try again later.'
+    },
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+const refreshLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 60,
+    message: {
+        success: false,
+        message: 'Too many session refresh requests. Please try again later.'
     },
     standardHeaders: true,
     legacyHeaders: false
@@ -66,11 +89,11 @@ router.post('/register', registrationLimiter, register);
 router.post('/login', loginLimiter, login);
 router.post('/forgot-password', forgotPasswordLimiter, requestPasswordReset);
 router.post('/reset-password', resetPasswordLimiter, resetPassword);
-router.get('/google', loginLimiter, startGoogleLogin);
-router.post('/google/link', loginLimiter, authenticateToken, startGoogleLink);
+router.get('/google', googleAuthLimiter, startGoogleLogin);
+router.post('/google/link', googleAuthLimiter, authenticateToken, startGoogleLink);
 router.get('/google/callback', googleCallback);
-router.post('/google/session', loginLimiter, completeGoogleLogin);
-router.post('/refresh', loginLimiter, refreshSession);
+router.post('/google/session', googleAuthLimiter, completeGoogleLogin);
+router.post('/refresh', refreshLimiter, refreshSession);
 router.post('/logout', logout);
 router.get('/account', authenticateToken, getAccount);
 router.patch('/account/phone', authenticateToken, updatePhone);
