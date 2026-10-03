@@ -266,12 +266,15 @@ const getMyBookings = async (req, res) => {
             FROM bookings b
             JOIN meals m
                 ON b.meal_id = m.meal_id
+            LEFT JOIN (
+                SELECT booking_id, MAX(payment_id) AS payment_id
+                FROM payments
+                WHERE booking_id IS NOT NULL
+                GROUP BY booking_id
+            ) latest_payment
+                ON latest_payment.booking_id = b.booking_id
             LEFT JOIN payments p
-                ON p.payment_id = (
-                    SELECT MAX(p2.payment_id)
-                    FROM payments p2
-                    WHERE p2.booking_id = b.booking_id
-                )
+                ON p.payment_id = latest_payment.payment_id
             WHERE b.user_id = ?
             ORDER BY m.meal_date DESC,
                      FIELD(m.meal_type, 'breakfast', 'lunch', 'dinner')
@@ -440,12 +443,15 @@ const getAllBookings = async (req, res) => {
                 ON b.user_id = u.user_id
             JOIN meals m
                 ON b.meal_id = m.meal_id
+            LEFT JOIN (
+                SELECT booking_id, MAX(payment_id) AS payment_id
+                FROM payments
+                WHERE booking_id IS NOT NULL
+                GROUP BY booking_id
+            ) latest_payment
+                ON latest_payment.booking_id = b.booking_id
             LEFT JOIN payments p
-                ON p.payment_id = (
-                    SELECT MAX(p2.payment_id)
-                    FROM payments p2
-                    WHERE p2.booking_id = b.booking_id
-                )
+                ON p.payment_id = latest_payment.payment_id
             ORDER BY b.booking_id DESC
             `
         );
