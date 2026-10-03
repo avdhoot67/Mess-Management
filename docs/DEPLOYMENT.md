@@ -63,6 +63,8 @@ Initial production branch: deployment/production
 
 Vercel initially selects `main` automatically when the project is imported. In **Project Settings > Environments > Production > Branch Tracking**, change it to `deployment/production` while the hosted release candidate is being verified. After the verified branch is merged, change branch tracking back to `main`.
 
+If the deployment branch existed before the Vercel project was connected, push a new commit to that branch first so Vercel creates its initial Preview deployment. Branch Tracking can then promote subsequent pushes from that branch to Production.
+
 The initial `frontend/vercel.json` supplies the SPA fallback. Deploy the release-candidate branch once to reserve the stable `vercel.app` hostname. API calls are not enabled until the Render URL is known.
 
 ## 3. Create the Render API
