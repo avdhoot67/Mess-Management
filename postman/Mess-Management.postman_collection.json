@@ -1,0 +1,231 @@
+{
+  "info": {
+    "name": "Mess Management",
+    "description": "Shared API verification collection. Phase 1 covers registration, booking lifecycle, calendar data, and day skips.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000/api" },
+    { "key": "studentToken", "value": "" },
+    { "key": "adminToken", "value": "" },
+    { "key": "planId", "value": "" },
+    { "key": "mealId", "value": "" },
+    { "key": "bookingId", "value": "" },
+    { "key": "pastBookingId", "value": "" },
+    { "key": "paymentId", "value": "" },
+    { "key": "subscriptionId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register Student",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Phase One Student\",\n  \"email\": \"phase1.student@example.com\",\n  \"phone\": \"9876543210\",\n  \"password\": \"student123\"\n}" },
+            "url": "{{baseUrl}}/auth/register"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('student is registered', function () {", "  pm.expect(pm.response.code).to.be.oneOf([201, 409]);", "});"] } }]
+        },
+        {
+          "name": "Login Student",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"phase1.student@example.com\",\n  \"password\": \"student123\"\n}" },
+            "url": "{{baseUrl}}/auth/login"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('student login succeeds', function () {", "  pm.response.to.have.status(200);", "  const response = pm.response.json();", "  pm.expect(response.success).to.eql(true);", "  pm.collectionVariables.set('studentToken', response.token);", "});"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Meals",
+      "item": [
+        {
+          "name": "Get Meals for Selected Date",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }], "url": "{{baseUrl}}/meals?date=2026-08-22" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('meals are returned', function () {", "  pm.response.to.have.status(200);", "  pm.expect(pm.response.json().success).to.eql(true);", "});"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Bookings",
+      "item": [
+        {
+          "name": "Get My Bookings",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }], "url": "{{baseUrl}}/bookings" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('booking list is returned', function () {", "  pm.response.to.have.status(200);", "  pm.expect(pm.response.json().success).to.eql(true);", "});"] } }]
+        },
+        {
+          "name": "Create Pending Booking",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"meal_id\": {{mealId}},\n  \"transaction_reference\": \"PHASE1-BOOKING-001\"\n}" },
+            "url": "{{baseUrl}}/bookings"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('booking is pending verification', function () {", "  pm.response.to.have.status(201);", "  const response = pm.response.json();", "  pm.expect(response.booking.booking_status).to.eql('pending');", "  pm.expect(response.payment.payment_status).to.eql('pending');", "  pm.collectionVariables.set('bookingId', response.booking.booking_id);", "});"] } }]
+        },
+        {
+          "name": "Cancel Booking",
+          "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }], "url": "{{baseUrl}}/bookings/{{bookingId}}/cancel" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('booking is cancelled', function () {", "  pm.response.to.have.status(200);", "  pm.expect(pm.response.json().booking.status).to.eql('cancelled');", "});"] } }]
+        },
+        {
+          "name": "Reject Past Meal Cancellation",
+          "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }], "url": "{{baseUrl}}/bookings/{{pastBookingId}}/cancel" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('past meal cancellation is rejected', function () {", "  pm.response.to.have.status(400);", "  pm.expect(pm.response.json().message).to.eql('Past meal bookings cannot be cancelled');", "});"] } }]
+        },
+        {
+          "name": "Rebook Cancelled Meal",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"meal_id\": {{mealId}},\n  \"transaction_reference\": \"PHASE1-REBOOK-001\"\n}" },
+            "url": "{{baseUrl}}/bookings"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('rebooking is pending verification', function () {", "  pm.response.to.have.status(201);", "  const response = pm.response.json();", "  pm.expect(response.booking.booking_status).to.eql('pending');", "  pm.expect(response.payment.payment_status).to.eql('pending');", "});"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Subscriptions",
+      "item": [
+        {
+          "name": "Get My Subscriptions",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }], "url": "{{baseUrl}}/subscriptions" }
+        },
+        {
+          "name": "Submit Subscription Payment",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"plan_id\": {{planId}},\n  \"transaction_reference\": \"PHASE2-SUBSCRIPTION-001\"\n}" },
+            "url": "{{baseUrl}}/subscriptions"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('subscription and payment are pending', function () {", "  pm.response.to.have.status(201);", "  const response = pm.response.json();", "  pm.expect(response.subscription.status).to.eql('pending');", "  pm.expect(response.payment.payment_status).to.eql('pending');", "});"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Plans",
+      "item": [
+        {
+          "name": "Get Available Plans",
+          "request": { "method": "GET", "url": "{{baseUrl}}/plans" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('plans are returned', function () {", "  pm.response.to.have.status(200);", "  pm.expect(pm.response.json().success).to.eql(true);", "});"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Get My Payments",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }], "url": "{{baseUrl}}/payments" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('payment history is returned', function () {", "  pm.response.to.have.status(200);", "  pm.expect(pm.response.json().success).to.eql(true);", "});"] } }]
+        },
+        {
+          "name": "Download My Payment Receipt",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }],
+            "url": "{{baseUrl}}/payments/{{paymentId}}/receipt"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('receipt is a PDF download', function () {", "  pm.response.to.have.status(200);", "  pm.expect(pm.response.headers.get('Content-Type')).to.include('application/pdf');", "});"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Admin Payments",
+      "item": [
+        {
+          "name": "Get All Payments for Review",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": "{{baseUrl}}/payments/admin" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('admin payment queue is returned', function () {", "  pm.response.to.have.status(200);", "  pm.expect(pm.response.json().success).to.eql(true);", "});"] } }]
+        },
+        {
+          "name": "Approve Pending Payment",
+          "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": "{{baseUrl}}/payments/{{paymentId}}/approve" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('payment is approved', function () {", "  pm.response.to.have.status(200);", "  pm.expect(pm.response.json().payment.payment_status).to.eql('completed');", "});"] } }]
+        },
+        {
+          "name": "Reject Pending Payment",
+          "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": "{{baseUrl}}/payments/{{paymentId}}/reject" },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('payment is rejected', function () {", "  pm.response.to.have.status(200);", "  pm.expect(pm.response.json().payment.payment_status).to.eql('failed');", "});"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Admin Management",
+      "item": [
+        {
+          "name": "Get All Meals",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": "{{baseUrl}}/meals" }
+        },
+        {
+          "name": "Create Meal",
+          "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"meal_date\": \"2026-09-10\",\n  \"meal_type\": \"lunch\",\n  \"menu\": \"Phase 4 lunch\",\n  \"price\": 80\n}" }, "url": "{{baseUrl}}/meals" }
+        },
+        {
+          "name": "Update Meal",
+          "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"meal_date\": \"2026-09-10\",\n  \"meal_type\": \"lunch\",\n  \"menu\": \"Updated Phase 4 lunch\",\n  \"price\": 85\n}" }, "url": "{{baseUrl}}/meals/{{mealId}}" }
+        },
+        {
+          "name": "Get All Plans",
+          "request": { "method": "GET", "url": "{{baseUrl}}/plans" }
+        },
+        {
+          "name": "Create Plan",
+          "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"plan_name\": \"Phase 4 Plan\",\n  \"price\": 2400,\n  \"duration_days\": 30,\n  \"description\": \"Covers all meal types.\"\n}" }, "url": "{{baseUrl}}/plans" }
+        },
+        {
+          "name": "Update Plan",
+          "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"plan_name\": \"Updated Phase 4 Plan\",\n  \"price\": 2500,\n  \"duration_days\": 30,\n  \"description\": \"Covers all meal types.\"\n}" }, "url": "{{baseUrl}}/plans/{{planId}}" }
+        },
+        {
+          "name": "Get All Subscriptions",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": "{{baseUrl}}/subscriptions/admin" }
+        },
+        {
+          "name": "Get All Bookings",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": "{{baseUrl}}/bookings/admin" }
+        },
+        {
+          "name": "Get All Feedback",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": "{{baseUrl}}/feedback/admin" }
+        }
+      ]
+    },
+    {
+      "name": "Feedback",
+      "item": [
+        {
+          "name": "Get My Feedback",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }], "url": "{{baseUrl}}/feedback" }
+        },
+        {
+          "name": "Submit Meal Feedback",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"meal_id\": {{mealId}},\n  \"rating\": 5,\n  \"message\": \"Phase 2 verification feedback.\"\n}" },
+            "url": "{{baseUrl}}/feedback"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Day Skips",
+      "item": [
+        {
+          "name": "Get My Day Skips",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{studentToken}}" }], "url": "{{baseUrl}}/skips" }
+        }
+      ]
+    }
+  ]
+}
