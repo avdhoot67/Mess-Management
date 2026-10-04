@@ -170,13 +170,9 @@ Route pages use 24px vertical rhythm between major sections and 16px between rel
 
 ### Public Entry Surface
 
-The public landing page is the expressive counterpart to the Calm Operations Desk. It uses a cinematic operational world inspired by authored full-page experiences: midnight depth, large editorial Onest typography, thin ledger rules, warm paper transitions, and a live field of connected service signals. Emerald remains the action and connection color; cool blue is a quiet supporting signal. The page must never become a generic SaaS card stack, food-delivery storefront, or unrelated 3D showcase.
+The public landing page extends the Calm Operations Desk into a persuasive surface without adopting a separate marketing identity. Its first viewport uses a midnight operational ground, concise product positioning, student registration and sign-in actions, and a large illustrative workspace that demonstrates how subscription coverage, daily meals, individual bookings, payments, and feedback remain connected.
 
-The first viewport must state and demonstrate the product mechanism at full scale. A live operational field connects five truthful concepts—subscription, meals, individual booking, payment, and feedback—behind direct student registration and shared sign-in actions. WebGL responds subtly to pointer and scroll input but remains atmospheric; it never hides content or becomes a product control.
-
-The landing page uses one GSAP-directed scroll chapter. On large screens the service-day sequence pins while five operational states replace one another through clipped editorial transitions. On small screens and for `prefers-reduced-motion`, all five states become a normal vertical reading flow and remain visible without animation. Motion uses one coordinated timeline, not repeated entrance effects across every section.
-
-Public sections may alternate between midnight canvas, warm operational paper, and cool workspace surfaces. Their shared typography, one-pixel rules, restrained radii, and emerald signal keep them inside one system. Decorative cards, gradient text, glass panels, fabricated statistics, testimonials, prices, partner logos, and multi-mess claims remain prohibited.
+The landing page may use one scroll-linked operational chapter: on large screens the explanatory frame stays pinned while real product concepts transition in sequence; on small screens and for reduced-motion users the same content becomes a normal vertical reading flow. Motion must preserve visible content, respect `prefers-reduced-motion`, and explain the service relationship rather than decorate it.
 
 Public content must not invent testimonials, adoption metrics, prices, partner logos, or multi-mess capabilities. Public administrator registration is never offered; the primary acquisition action is student registration, while existing customers and administrators share the sign-in route.
 

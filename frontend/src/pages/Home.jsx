@@ -1,353 +1,454 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { gsap } from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { AnimatePresence, motion, useMotionValueEvent, useReducedMotion, useScroll } from 'motion/react'
 import {
-  ArrowDown,
   ArrowRight,
   CalendarDays,
   Check,
-  CircleCheck,
   Clock3,
   CreditCard,
+  FileCheck2,
+  House,
   MessageSquareText,
   NotebookTabs,
   ShieldCheck,
-  Sparkles,
+  SlidersHorizontal,
   Utensils,
 } from 'lucide-react'
-import OperationsField from '../components/landing/OperationsField'
 import { useAuth } from '../context/AuthContext'
-import './Home.css'
 
-gsap.registerPlugin(ScrollTrigger)
-
-const chapters = [
+const mealServices = [
   {
-    title: 'The menu becomes the source of truth.',
-    summary: 'The mess team publishes breakfast, lunch and dinner once. Every customer sees the same service the kitchen is preparing.',
-    signal: 'Daily service',
-    value: '3 meals published',
-    detail: 'Monday, 05 October',
-    icon: NotebookTabs,
+    type: 'Breakfast',
+    time: '7:30 – 9:30',
+    menu: 'Poha, banana and tea',
+    state: 'Included in your plan',
+    included: true,
   },
   {
-    title: 'Coverage is visible before action.',
-    summary: 'Students see the active plan, remaining duration and skipped days beside the meal calendar—not in a separate register.',
-    signal: 'Subscription',
-    value: '24 days remaining',
-    detail: 'All meal types covered',
-    icon: ShieldCheck,
+    type: 'Lunch',
+    time: '12:00 – 14:30',
+    menu: 'Dal tadka, jeera rice and roti',
+    state: 'Included in your plan',
+    included: true,
   },
   {
-    title: 'A skip and a booking stay different.',
-    summary: 'Skipping an eligible subscription day extends the plan. An individual meal remains a separate paid booking when needed.',
-    signal: 'Customer choice',
-    value: '1 day skipped',
-    detail: 'Plan extended automatically',
-    icon: CalendarDays,
-  },
-  {
-    title: 'Payment becomes an entitlement.',
-    summary: 'Transaction references enter one verification queue. Approval activates the correct subscription or confirms the individual meal.',
-    signal: 'Verification',
-    value: 'Payment confirmed',
-    detail: 'Reference retained',
-    icon: CreditCard,
-  },
-  {
-    title: 'Service closes with useful feedback.',
-    summary: 'Eligible customers respond after service. Ratings, written feedback and recurring themes return to the team that can act on them.',
-    signal: 'Feedback loop',
-    value: 'Insight ready',
-    detail: 'Real service data only',
-    icon: MessageSquareText,
+    type: 'Dinner',
+    time: '19:00 – 21:30',
+    menu: 'Paneer masala, rice and roti',
+    state: 'Included in your plan',
+    included: true,
   },
 ]
 
-const relationshipRows = [
-  ['Plan', 'Duration and coverage'],
-  ['Meal', 'What the mess serves'],
-  ['Skip', 'An eligible day moved'],
-  ['Booking', 'A separate paid meal'],
-  ['Payment', 'Verification and receipt'],
-  ['Feedback', 'A response after service'],
+const journey = [
+  { icon: CreditCard, label: 'Subscription', state: 'Active', detail: 'Monthly plan · 24 days left' },
+  { icon: Utensils, label: "Today’s meals", state: '3 included', detail: 'All meal types covered' },
+  { icon: CalendarDays, label: 'Individual booking', state: 'Extra day booked', detail: 'Outside the plan duration' },
+  { icon: CreditCard, label: 'Payment', state: 'Verified', detail: 'Reference and receipt saved' },
+  { icon: MessageSquareText, label: 'Feedback', state: 'Next action', detail: 'Share after dinner service' },
+]
+
+const proofPoints = [
+  { icon: CalendarDays, text: 'Live meal information and your plan' },
+  { icon: SlidersHorizontal, text: 'Book, skip or add an individual meal' },
+  { icon: CreditCard, text: 'Payments and entitlements stay in sync' },
+  { icon: MessageSquareText, text: 'Feedback reaches the mess team' },
+]
+
+const operatingSequence = [
+  {
+    icon: NotebookTabs,
+    title: 'Publish the daily service',
+    audience: 'Mess team',
+    description: 'The schedule begins with one trusted menu for breakfast, lunch and dinner. Students see the same service the team is operating.',
+    action: 'Meal schedule published',
+    detail: '3 services · Monday, 05 October',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Make coverage obvious',
+    audience: 'Student',
+    description: 'Subscription dates and skips remain visible beside the meal calendar, so students know what is included before taking action.',
+    action: 'Monthly plan active',
+    detail: '24 service days remaining',
+  },
+  {
+    icon: SlidersHorizontal,
+    title: 'Keep booking and skipping distinct',
+    audience: 'Student',
+    description: 'A subscription skip extends the plan. An individual booking is a separate paid meal. MessMate keeps both decisions clear instead of merging them.',
+    action: 'Extra-day meal booked',
+    detail: 'Subscription coverage stays unchanged',
+  },
+  {
+    icon: FileCheck2,
+    title: 'Verify before activating',
+    audience: 'Mess team',
+    description: 'Customer transaction references enter a review queue. Approval activates the correct subscription or confirms the individual booking.',
+    action: 'Payment verified',
+    detail: 'Reference and receipt retained',
+  },
+  {
+    icon: MessageSquareText,
+    title: 'Turn service into useful feedback',
+    audience: 'Both sides',
+    description: 'Eligible customers can respond after a meal, while the mess team sees ratings, written feedback and recurring themes together.',
+    action: 'Feedback ready for review',
+    detail: 'Operational learning closes the loop',
+  },
 ]
 
 const Home = () => {
-  const rootRef = useRef(null)
-  const heroRef = useRef(null)
-  const storyRef = useRef(null)
-  const chapterRefs = useRef([])
-  const [activeChapter, setActiveChapter] = useState(0)
   const { user, isAuthenticated } = useAuth()
   const workspacePath = user?.role === 'admin' ? '/admin' : '/student'
 
-  useLayoutEffect(() => {
-    const root = rootRef.current
-    if (!root) return undefined
-
-    const media = gsap.matchMedia()
-    const context = gsap.context(() => {
-      media.add('(prefers-reduced-motion: no-preference)', () => {
-        gsap.fromTo('[data-hero-line]',
-          { yPercent: 110, rotate: 1.2 },
-          { yPercent: 0, rotate: 0, duration: 1.2, stagger: 0.12, ease: 'expo.out' },
-        )
-        gsap.fromTo('[data-hero-reveal]',
-          { autoAlpha: 0, y: 24 },
-          { autoAlpha: 1, y: 0, duration: 0.85, stagger: 0.1, delay: 0.55, ease: 'power3.out' },
-        )
-        gsap.to('[data-hero-content]', {
-          yPercent: -12,
-          opacity: 0.22,
-          ease: 'none',
-          scrollTrigger: {
-            trigger: heroRef.current,
-            start: 'top top',
-            end: 'bottom top',
-            scrub: 0.8,
-          },
-        })
-      })
-
-      media.add('(min-width: 900px) and (prefers-reduced-motion: no-preference)', () => {
-        const items = chapterRefs.current.filter(Boolean)
-        if (!items.length) return undefined
-
-        gsap.set(items, { autoAlpha: 0, y: 42, clipPath: 'inset(12% 0 0 0)' })
-        gsap.set(items[0], { autoAlpha: 1, y: 0, clipPath: 'inset(0% 0 0 0)' })
-
-        const timeline = gsap.timeline({
-          defaults: { ease: 'power3.inOut' },
-          scrollTrigger: {
-            trigger: storyRef.current,
-            start: 'top top',
-            end: `+=${chapters.length * 90}%`,
-            pin: true,
-            scrub: 0.85,
-            anticipatePin: 1,
-            onUpdate: (self) => {
-              const next = Math.min(chapters.length - 1, Math.round(self.progress * (chapters.length - 1)))
-              setActiveChapter((current) => current === next ? current : next)
-            },
-          },
-        })
-
-        items.slice(1).forEach((item, index) => {
-          const previous = items[index]
-          timeline
-            .to(previous, { autoAlpha: 0, y: -34, clipPath: 'inset(0 0 14% 0)', duration: 0.4 }, index + 0.6)
-            .fromTo(item,
-              { autoAlpha: 0, y: 44, clipPath: 'inset(14% 0 0 0)' },
-              { autoAlpha: 1, y: 0, clipPath: 'inset(0% 0 0 0)', duration: 0.55 },
-              index + 0.86,
-            )
-        })
-
-        return () => timeline.kill()
-      })
-    }, root)
-
-    return () => {
-      media.revert()
-      context.revert()
-    }
-  }, [])
-
   return (
-    <main ref={rootRef} className="kage-landing">
-      <OperationsField />
-
-      <header className="landing-nav">
-        <nav className="landing-shell flex min-h-20 items-center justify-between gap-6" aria-label="Public navigation">
-          <Link to="/" className="landing-logo focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-300">
-            Mess<span>Mate</span>
+    <main className="min-h-screen bg-slate-950 text-white">
+      <header className="border-b border-white/10 bg-slate-950">
+        <nav className="mx-auto flex min-h-16 max-w-[1500px] items-center justify-between gap-5 px-5 sm:px-8 lg:px-12" aria-label="Public navigation">
+          <Link to="/" className="text-xl font-bold tracking-[-0.03em] text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-400 sm:text-2xl">
+            Mess<span className="text-emerald-400">Mate</span>
           </Link>
+
           <div className="hidden items-center gap-8 text-sm font-medium text-slate-300 md:flex">
-            <a href="#connected-day" className="landing-link">A connected day</a>
-            <a href="#relationship" className="landing-link">Why it works</a>
+            <a href="#how-it-works" className="transition hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-400">How it works</a>
+            <a href="#mess-teams" className="transition hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-400">For mess teams</a>
           </div>
-          {isAuthenticated ? (
-            <Link to={workspacePath} className="landing-button landing-button--primary">
-              Open workspace <ArrowRight size={17} aria-hidden="true" />
-            </Link>
-          ) : (
-            <div className="flex items-center gap-2 sm:gap-3">
-              <Link to="/login" className="landing-button landing-button--quiet">Sign in</Link>
-              <Link to="/register" className="landing-button landing-button--primary landing-nav__join">
-                Join as student <ArrowRight size={17} aria-hidden="true" />
+
+          <div className="flex items-center gap-2 sm:gap-3">
+            {isAuthenticated ? (
+              <Link to={workspacePath} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400">
+                Open workspace <ArrowRight size={16} aria-hidden="true" />
               </Link>
-            </div>
-          )}
+            ) : (
+              <>
+                <Link to="/login" className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-600 px-3 text-sm font-semibold text-white transition hover:border-slate-400 hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400 sm:px-5">
+                  Sign in
+                </Link>
+                <Link to="/register" className="hidden min-h-11 items-center justify-center rounded-lg bg-emerald-500 px-5 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400 sm:inline-flex">
+                  Create student account
+                </Link>
+              </>
+            )}
+          </div>
         </nav>
       </header>
 
-      <section ref={heroRef} className="landing-hero">
-        <div className="landing-hero__veil" aria-hidden="true" />
-        <div data-hero-content className="landing-shell landing-hero__content">
-          <h1 className="landing-hero__headline" aria-label="One mess. Every signal in sync.">
-            <span className="landing-line-mask"><span data-hero-line>One mess.</span></span>
-            <span className="landing-line-mask landing-line-mask--accent"><span data-hero-line>Every signal</span></span>
-            <span className="landing-line-mask"><span data-hero-line>in sync.</span></span>
-          </h1>
-
-          <div className="landing-hero__footer">
-            <p data-hero-reveal className="landing-hero__copy">
-              MessMate connects subscriptions, daily meals, individual bookings, payments, skips and feedback into one operational view.
+      <section className="relative overflow-hidden border-b border-white/10">
+        <div className="pointer-events-none absolute -left-24 top-16 h-72 w-72 rounded-full bg-emerald-950/70 blur-3xl" aria-hidden="true" />
+        <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-[1500px] items-center gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[0.9fr_1.1fr] lg:px-12 lg:py-14 xl:gap-16">
+          <div className="relative z-10 max-w-xl">
+            <h1 className="text-balance text-5xl font-bold leading-[0.98] tracking-[-0.04em] text-white sm:text-6xl lg:text-[3.75rem] xl:text-[4rem]">
+              Your mess,<br />
+              <span className="text-emerald-400">in one clear system.</span>
+            </h1>
+            <p className="mt-7 max-w-[38rem] text-lg leading-8 text-slate-300 sm:text-xl">
+              See what is served, what your subscription covers, what you booked or skipped, and what needs attention—without chasing separate records.
             </p>
-            <div data-hero-reveal className="landing-hero__actions">
+
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               {isAuthenticated ? (
-                <Link to={workspacePath} className="landing-button landing-button--primary landing-button--large">Open your workspace <ArrowRight size={19} aria-hidden="true" /></Link>
+                <Link to={workspacePath} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-emerald-500 px-6 text-base font-semibold text-slate-950 transition hover:bg-emerald-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400">
+                  Open your workspace <ArrowRight size={18} aria-hidden="true" />
+                </Link>
               ) : (
                 <>
-                  <Link to="/register" className="landing-button landing-button--primary landing-button--large">Create student account <ArrowRight size={19} aria-hidden="true" /></Link>
-                  <Link to="/login" className="landing-button landing-button--quiet landing-button--large">Use an existing account</Link>
+                  <Link to="/register" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-emerald-500 px-6 text-base font-semibold text-slate-950 transition hover:bg-emerald-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400">
+                    Create student account <ArrowRight size={18} aria-hidden="true" />
+                  </Link>
+                  <Link to="/login" className="inline-flex min-h-12 items-center justify-center rounded-lg border border-slate-500 px-6 text-base font-semibold text-white transition hover:border-slate-300 hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400">
+                    Sign in
+                  </Link>
                 </>
               )}
             </div>
-          </div>
 
-          <div data-hero-reveal className="landing-hero__signals" aria-label="Illustrative connected operational signals">
-            <Signal label="Subscription" value="Active" />
-            <Signal label="Today" value="3 meals" />
-            <Signal label="Booking" value="Separate" />
-            <Signal label="Payment" value="Verified" />
-            <Signal label="Feedback" value="Eligible" />
-          </div>
-        </div>
-
-        <a href="#connected-day" className="landing-scroll-cue" aria-label="Scroll to see a connected service day">
-          <span>Follow a service day</span><ArrowDown size={17} aria-hidden="true" />
-        </a>
-      </section>
-
-      <section ref={storyRef} id="connected-day" className="landing-story">
-        <div className="landing-shell landing-story__frame">
-          <div className="landing-story__rail" aria-hidden="true">
-            <p>A connected service day</p>
-            <div className="landing-story__ticks">
-              {chapters.map((chapter, index) => (
-                <span key={chapter.signal} className={activeChapter === index ? 'is-active' : ''}>{String(index + 1).padStart(2, '0')}</span>
+            <div className="mt-14 grid grid-cols-2 gap-x-5 gap-y-6 border-t border-white/10 pt-6 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
+              {proofPoints.map(({ icon: Icon, text }) => (
+                <div key={text} className="min-w-0 border-l border-white/15 pl-3 first:border-l-0 first:pl-0 sm:first:border-l sm:first:pl-3 lg:first:border-l-0 lg:first:pl-0 xl:first:border-l xl:first:pl-3">
+                  <Icon size={18} className="text-slate-300" aria-hidden="true" />
+                  <p className="mt-3 text-xs leading-5 text-slate-400">{text}</p>
+                </div>
               ))}
             </div>
           </div>
 
-          <div className="landing-story__chapters">
-            {chapters.map((chapter, index) => (
-              <Chapter
-                key={chapter.title}
-                chapter={chapter}
-                index={index}
-                ref={(node) => { chapterRefs.current[index] = node }}
-              />
-            ))}
+          <IllustrativeWorkspace />
+        </div>
+      </section>
+
+      <ConnectedOperationsStory />
+
+      <section id="mess-teams" className="bg-slate-50 px-5 py-24 text-slate-950 sm:px-8 lg:px-12 lg:py-32">
+        <div className="mx-auto max-w-[1320px]">
+          <div className="grid gap-12 border-b border-slate-200 pb-16 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
+            <h2 className="max-w-3xl text-balance text-4xl font-bold leading-tight tracking-[-0.035em] sm:text-5xl">
+              Built for the relationship between a customer and a mess.
+            </h2>
+            <p className="max-w-2xl text-lg leading-8 text-slate-600 lg:justify-self-end">
+              MessMate does not treat every meal as a one-time order. It keeps recurring subscriptions, daily service, separate bookings, skips, verification and feedback in one operational record.
+            </p>
+          </div>
+
+          <div className="grid lg:grid-cols-2">
+            <article className="border-b border-slate-200 py-12 lg:border-b-0 lg:border-r lg:pr-14">
+              <p className="text-sm font-semibold text-emerald-700">For students and regular customers</p>
+              <h3 className="mt-4 text-3xl font-bold tracking-[-0.025em]">Know what applies today.</h3>
+              <ul className="mt-8 space-y-5">
+                {[
+                  'See subscription duration, skipped days and the next useful action.',
+                  'Review upcoming meals before booking or changing plans.',
+                  'Keep individual paid bookings separate from subscription coverage.',
+                  'Track verification status, receipts and eligible feedback in one place.',
+                ].map((item) => <BenefitRow key={item}>{item}</BenefitRow>)}
+              </ul>
+            </article>
+
+            <article className="py-12 lg:pl-14">
+              <p className="text-sm font-semibold text-emerald-700">For mess teams</p>
+              <h3 className="mt-4 text-3xl font-bold tracking-[-0.025em]">Operate from shared truth.</h3>
+              <ul className="mt-8 space-y-5">
+                {[
+                  'Publish meals and duration-based plans without separate registers.',
+                  'Review subscriptions, bookings and pending payments in context.',
+                  'Understand daily demand and customer activity from real records.',
+                  'Use ratings and written feedback to identify service patterns.',
+                ].map((item) => <BenefitRow key={item}>{item}</BenefitRow>)}
+              </ul>
+            </article>
           </div>
         </div>
       </section>
 
-      <section id="relationship" className="landing-relationship">
-        <div className="landing-shell">
-          <div className="landing-relationship__intro">
-            <h2>Not another meal-ordering app.</h2>
-            <p>MessMate keeps the whole customer–mess relationship legible. Each action has its own meaning, but every record stays connected to the same day of service.</p>
+      <section className="border-y border-white/10 bg-slate-950 px-5 py-24 sm:px-8 lg:px-12 lg:py-32">
+        <div className="mx-auto flex max-w-[1320px] flex-col justify-between gap-10 lg:flex-row lg:items-end">
+          <div>
+            <h2 className="max-w-4xl text-balance text-4xl font-bold leading-tight tracking-[-0.035em] sm:text-5xl lg:text-6xl">
+              Stop checking separate records just to understand today.
+            </h2>
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">Open MessMate to see the service, your status and the action that comes next.</p>
           </div>
-
-          <div className="landing-relationship__ledger" aria-label="How MessMate keeps operational records distinct">
-            {relationshipRows.map(([name, meaning], index) => (
-              <div className="landing-ledger-row" key={name}>
-                <span className="landing-ledger-row__index">{String(index + 1).padStart(2, '0')}</span>
-                <strong>{name}</strong>
-                <span>{meaning}</span>
-                <CircleCheck size={20} aria-hidden="true" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="landing-two-sides">
-        <div className="landing-shell landing-two-sides__grid">
-          <article>
-            <div className="landing-two-sides__icon"><Utensils size={23} aria-hidden="true" /></div>
-            <h2>For the person asking, “What applies to me today?”</h2>
-            <p>See your plan, remaining duration, skipped days, meals, separate bookings, payment status and next available action without searching across pages.</p>
-            <ul>
-              <Benefit>Plan coverage and skips stay visible</Benefit>
-              <Benefit>Past and upcoming meals stay distinct</Benefit>
-              <Benefit>Receipts and verification remain traceable</Benefit>
-            </ul>
-          </article>
-          <article>
-            <div className="landing-two-sides__icon"><Clock3 size={23} aria-hidden="true" /></div>
-            <h2>For the team asking, “What needs attention today?”</h2>
-            <p>Publish service, review demand, verify payments and understand customer activity from one operational system instead of separate registers.</p>
-            <ul>
-              <Benefit>Daily service and bookings share context</Benefit>
-              <Benefit>Pending work remains easy to identify</Benefit>
-              <Benefit>Feedback returns to real meal records</Benefit>
-            </ul>
-          </article>
-        </div>
-      </section>
-
-      <section className="landing-close">
-        <div className="landing-close__orbit" aria-hidden="true"><Sparkles size={36} /></div>
-        <div className="landing-shell landing-close__content">
-          <h2>Make today<br />easy to read.</h2>
-          <p>One place for the service, the customer’s status and the next action that matters.</p>
-          <div className="landing-close__actions">
+          <div className="flex shrink-0 flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row">
             {isAuthenticated ? (
-              <Link to={workspacePath} className="landing-button landing-button--primary landing-button--large">Open workspace <ArrowRight size={19} aria-hidden="true" /></Link>
+              <Link to={workspacePath} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-emerald-500 px-6 font-semibold text-slate-950 transition hover:bg-emerald-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400">Open workspace <ArrowRight size={18} aria-hidden="true" /></Link>
             ) : (
               <>
-                <Link to="/register" className="landing-button landing-button--primary landing-button--large">Create student account <ArrowRight size={19} aria-hidden="true" /></Link>
-                <Link to="/login" className="landing-button landing-button--quiet landing-button--large">Sign in</Link>
+                <Link to="/register" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-emerald-500 px-6 font-semibold text-slate-950 transition hover:bg-emerald-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400">Create student account <ArrowRight size={18} aria-hidden="true" /></Link>
+                <Link to="/login" className="inline-flex min-h-12 items-center justify-center rounded-lg border border-slate-600 px-6 font-semibold text-white transition hover:border-slate-400 hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400">Sign in</Link>
               </>
             )}
           </div>
         </div>
       </section>
 
-      <footer className="landing-footer">
-        <div className="landing-shell landing-footer__inner">
-          <p className="landing-logo">Mess<span>Mate</span></p>
+      <footer className="bg-slate-950 px-5 py-8 text-slate-400 sm:px-8 lg:px-12">
+        <div className="mx-auto flex max-w-[1320px] flex-col justify-between gap-4 border-t border-white/10 pt-8 text-sm sm:flex-row sm:items-center">
+          <p className="font-semibold text-white">Mess<span className="text-emerald-400">Mate</span></p>
           <p>A single-mess operations platform for customers and teams.</p>
-          <div><Link to="/login">Sign in</Link><Link to="/register">Student registration</Link></div>
+          <div className="flex gap-5">
+            <Link to="/login" className="transition hover:text-white">Sign in</Link>
+            <Link to="/register" className="transition hover:text-white">Student registration</Link>
+          </div>
         </div>
       </footer>
     </main>
   )
 }
 
-const Signal = ({ label, value }) => (
-  <div className="landing-signal">
-    <span>{label}</span>
-    <strong>{value}</strong>
-  </div>
-)
+const ConnectedOperationsStory = () => {
+  const sectionRef = useRef(null)
+  const [activeIndex, setActiveIndex] = useState(0)
+  const shouldReduceMotion = useReducedMotion()
+  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start start', 'end end'] })
 
-const Chapter = ({ chapter, index, ref }) => {
-  const Icon = chapter.icon
+  useMotionValueEvent(scrollYProgress, 'change', (latest) => {
+    if (shouldReduceMotion) return
+    const nextIndex = Math.min(operatingSequence.length - 1, Math.floor(latest * operatingSequence.length))
+    setActiveIndex((current) => current === nextIndex ? current : nextIndex)
+  })
+
+  const selectStage = (index) => {
+    setActiveIndex(index)
+    if (!sectionRef.current) return
+    const sectionTop = sectionRef.current.offsetTop
+    const availableScroll = sectionRef.current.offsetHeight - window.innerHeight
+    window.scrollTo({
+      top: sectionTop + availableScroll * (index / (operatingSequence.length - 1)),
+      behavior: shouldReduceMotion ? 'auto' : 'smooth',
+    })
+  }
+
   return (
-    <article ref={ref} className="landing-chapter">
-      <div className="landing-chapter__number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</div>
-      <div className="landing-chapter__copy">
-        <Icon size={30} aria-hidden="true" />
-        <h2>{chapter.title}</h2>
-        <p>{chapter.summary}</p>
+    <section ref={sectionRef} id="how-it-works" className={`relative bg-white text-slate-950 ${shouldReduceMotion ? '' : 'lg:min-h-[360vh]'}`}>
+      <div className={`px-5 py-24 sm:px-8 lg:px-12 lg:py-16 ${shouldReduceMotion ? '' : 'lg:sticky lg:top-0 lg:flex lg:min-h-screen lg:items-center'}`}>
+        <div className="mx-auto grid w-full max-w-[1320px] gap-12 lg:grid-cols-[0.82fr_1.18fr] lg:gap-20">
+          <div>
+            <h2 className="max-w-xl text-balance text-4xl font-bold leading-tight tracking-[-0.035em] sm:text-5xl">One service. Every decision connected.</h2>
+            <p className="mt-6 max-w-xl text-lg leading-8 text-slate-600">Follow one day through MessMate. Each step keeps its own rules while staying visible to the people who depend on it.</p>
+
+            {!shouldReduceMotion && <div className="mt-10 hidden space-y-1 lg:block" aria-label="Connected operations stages">
+              {operatingSequence.map((stage, index) => (
+                <button
+                  type="button"
+                  aria-pressed={activeIndex === index}
+                  key={stage.title}
+                  onClick={() => selectStage(index)}
+                  className={`group flex w-full items-center gap-4 border-t px-1 py-4 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 ${activeIndex === index ? 'border-emerald-600 text-slate-950' : 'border-slate-200 text-slate-500 hover:text-slate-800'}`}
+                >
+                  <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold tabular-nums transition ${activeIndex === index ? 'bg-emerald-500 text-slate-950' : 'bg-slate-100 text-emerald-800 group-hover:bg-slate-200'}`}>{index + 1}</span>
+                  <span className="text-sm font-semibold">{stage.title}</span>
+                </button>
+              ))}
+            </div>}
+          </div>
+
+          <div className="lg:flex lg:items-center">
+            <div className="relative w-full overflow-hidden rounded-2xl bg-slate-950 p-5 text-white shadow-[0_20px_60px_rgba(15,23,42,0.16)] sm:p-8 lg:min-h-[560px]">
+              <div className="flex items-center justify-between border-b border-white/10 pb-5">
+                <p className="font-bold">Connected service</p>
+                <p className="text-xs font-medium text-slate-400">Illustrative workflow</p>
+              </div>
+
+              {!shouldReduceMotion && <div className="mt-5 h-1 overflow-hidden rounded-full bg-white/10" aria-hidden="true">
+                <motion.div className="h-full origin-left bg-emerald-500" style={{ scaleX: scrollYProgress }} />
+              </div>}
+
+              {shouldReduceMotion ? (
+                <div className="mt-8 space-y-4">
+                  {operatingSequence.map((stage, index) => <StagePanel key={stage.title} stage={stage} index={index} reduceMotion />)}
+                </div>
+              ) : (
+                <>
+                  <div className="mt-8 hidden lg:block">
+                    <AnimatePresence mode="wait">
+                      <StagePanel key={activeIndex} stage={operatingSequence[activeIndex]} index={activeIndex} />
+                    </AnimatePresence>
+                  </div>
+                  <div className="space-y-4 lg:hidden">
+                    {operatingSequence.map((stage, index) => <StagePanel key={stage.title} stage={stage} index={index} reduceMotion />)}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
-      <div className="landing-chapter__readout">
-        <span>{chapter.signal}</span>
-        <strong>{chapter.value}</strong>
-        <p>{chapter.detail}</p>
-      </div>
-    </article>
+    </section>
   )
 }
 
-const Benefit = ({ children }) => (
-  <li><span><Check size={14} aria-hidden="true" /></span>{children}</li>
+const StagePanel = ({ stage, index, reduceMotion }) => {
+  const Icon = stage.icon
+
+  return (
+    <motion.article
+      initial={reduceMotion ? false : { opacity: 0, y: 24, filter: 'blur(8px)' }}
+      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+      exit={reduceMotion ? undefined : { opacity: 0, y: -18, filter: 'blur(6px)' }}
+      transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
+      className="flex min-h-[430px] flex-col rounded-xl border border-white/10 bg-slate-900 p-6 sm:p-8"
+    >
+      <div className="flex items-start justify-between gap-5">
+        <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500 text-emerald-950"><Icon size={23} aria-hidden="true" /></span>
+        <span className="text-sm font-semibold tabular-nums text-slate-500">{String(index + 1).padStart(2, '0')} / 05</span>
+      </div>
+      <p className="mt-10 text-sm font-semibold text-emerald-400">{stage.audience}</p>
+      <h3 className="mt-3 max-w-xl text-3xl font-bold leading-tight tracking-[-0.025em] sm:text-4xl">{stage.title}</h3>
+      <p className="mt-5 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">{stage.description}</p>
+      <div className="mt-auto grid gap-3 border-t border-white/10 pt-6 sm:grid-cols-2">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Current state</p>
+          <p className="mt-2 font-semibold text-white">{stage.action}</p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Operational record</p>
+          <p className="mt-2 font-semibold text-white">{stage.detail}</p>
+        </div>
+      </div>
+    </motion.article>
+  )
+}
+
+const BenefitRow = ({ children }) => (
+  <li className="flex gap-3 text-base leading-7 text-slate-700">
+    <span className="mt-1.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700"><Check size={13} aria-hidden="true" /></span>
+    <span>{children}</span>
+  </li>
+)
+
+const IllustrativeWorkspace = () => (
+  <div className="relative z-10 mx-auto w-full max-w-[860px] rounded-2xl bg-slate-900 p-2 shadow-[0_24px_70px_rgba(0,0,0,0.35)]">
+    <div className="overflow-hidden rounded-xl bg-slate-50 text-slate-950">
+      <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 sm:px-5">
+        <p className="text-base font-bold tracking-[-0.02em]">Mess<span className="text-emerald-600">Mate</span></p>
+        <p className="text-xs font-medium text-slate-500">Illustrative workspace</p>
+      </div>
+
+      <div className="grid lg:grid-cols-[132px_1fr]">
+        <aside className="hidden border-r border-slate-200 bg-white p-3 lg:block" aria-label="Illustrative student navigation">
+          {[
+            [House, 'Home', true],
+            [Utensils, 'Meals'],
+            [CalendarDays, 'Bookings'],
+            [CreditCard, 'Subscription'],
+            [MessageSquareText, 'Feedback'],
+          ].map(([Icon, label, active]) => (
+            <div key={label} className={`mb-1 flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-semibold ${active ? 'bg-emerald-100' : ''}`}>
+              <Icon size={15} className={active ? 'text-emerald-800' : 'text-slate-500'} aria-hidden="true" />
+              <span className={active ? 'text-emerald-800' : 'text-slate-500'}>{label}</span>
+            </div>
+          ))}
+        </aside>
+
+        <div className="min-w-0 p-4 sm:p-5">
+          <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
+            <div>
+              <p className="text-base font-bold sm:text-lg">Today at your mess</p>
+              <p className="mt-0.5 text-xs text-slate-500">Service and entitlement shown together</p>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
+              <Clock3 size={14} aria-hidden="true" /> Monday, 05 October
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-2 sm:grid-cols-3">
+            {mealServices.map((meal) => (
+              <article key={meal.type} className="rounded-xl border border-slate-200 bg-white p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h2 className="text-sm font-bold">{meal.type}</h2>
+                    <p className="mt-0.5 text-[11px] text-slate-500">{meal.time}</p>
+                  </div>
+                  <Utensils size={16} className={meal.included ? 'text-emerald-600' : 'text-slate-400'} aria-hidden="true" />
+                </div>
+                <p className="mt-4 min-h-10 text-xs leading-5 text-slate-700">{meal.menu}</p>
+                <div className={`mt-3 flex min-h-8 items-center justify-center gap-1.5 rounded-lg px-2 text-[11px] font-semibold ${meal.included ? 'bg-emerald-50' : 'border border-slate-300'}`}>
+                  {meal.included && <Check size={13} className="text-emerald-800" aria-hidden="true" />}
+                  <span className={meal.included ? 'text-emerald-800' : 'text-slate-700'}>{meal.state}</span>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <div className="mt-5">
+            <p className="text-sm font-bold">Your connected journey</p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-5">
+              {journey.map(({ icon: Icon, label, state, detail }, index) => (
+                <div key={label} className="relative rounded-xl border border-slate-200 bg-white p-3">
+                  {index < journey.length - 1 && <span className="absolute left-[calc(100%+1px)] top-6 z-10 hidden h-px w-2 bg-emerald-400 sm:block" aria-hidden="true" />}
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-emerald-700"><Icon size={14} aria-hidden="true" /></span>
+                  <h3 className="mt-3 text-xs font-bold leading-4">{label}</h3>
+                  <p className="mt-2 inline-flex rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-800">{state}</p>
+                  <p className="mt-2 text-[10px] leading-4 text-slate-500">{detail}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 )
 
 export default Home
