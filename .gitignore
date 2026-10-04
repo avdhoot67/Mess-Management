@@ -28,3 +28,7 @@ pnpm-debug.log*
 Thumbs.db
 *.private.md
 
+# Coursework database exports
+backups/*.sql
+!backups/.gitkeep
+

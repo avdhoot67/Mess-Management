@@ -278,4 +278,98 @@ After the local scope is complete and documented, evaluate the remaining time. I
 
 ## 10. Next implementation step
 
-Add the optional observability profile: application metrics, Prometheus collection, and a provisioned Grafana dashboard. The core three-service container deployment is now verified.
+Complete the observability runtime check after Docker Desktop's WSL engine is restarted, then exercise the backup/restore scripts against the disposable restore database.
+
+## 11. Phase 3 — Observability implementation
+
+Observability means understanding a running system from the signals it produces. This phase uses two tools:
+
+- **Prometheus** requests, or “scrapes,” numeric metrics from the API every 10 seconds and stores time-series data.
+- **Grafana** queries Prometheus and displays the values as an operational dashboard.
+
+The API now records:
+
+- total HTTP requests grouped by method, normalized route, and status code;
+- request-duration histograms for latency calculations;
+- the result of the latest database health check;
+- standard Node.js process CPU, memory, event-loop, and garbage-collection metrics.
+
+The metrics endpoint is `/internal/metrics`. Nginx does not proxy `/internal`, the API publishes no host port, and Prometheus reaches it only over the private Docker network.
+
+This prevents the metrics endpoint from becoming another public application route. Metric labels also avoid emails, names, feedback, transaction references, tokens, and raw URLs. Fixed route templates are used instead of user-supplied URL values to prevent sensitive-data leakage and uncontrolled metric cardinality.
+
+Monitoring is optional through the Compose `observability` profile:
+
+```powershell
+docker compose --profile observability --env-file .env.docker up --build -d --wait
+```
+
+Local interfaces:
+
+- MessMate: `http://localhost:8080`
+- Prometheus: `http://localhost:9090`
+- Grafana: `http://localhost:3001`
+
+Prometheus and Grafana bind to `127.0.0.1`, so they are available only from this computer during the local lab.
+
+### Metrics dependency decision
+
+The original `prom-client` package emitted a deprecation warning during installation. It was immediately removed and replaced with `@prometheus-io/client`, the package maintained under the Prometheus organization. The newer package requires Node.js 22 or later, matching the API container and CI runtime.
+
+The production-only API dependency audit reports zero known vulnerabilities. Local `npm audit` still reports findings in development-only transitive packages; these do not enter the runtime API image and remain a separate maintenance item.
+
+### Dashboard panels
+
+The provisioned **MessMate API Operations** dashboard contains:
+
+1. database health;
+2. request rate by normalized route;
+3. 95th-percentile response time;
+4. server-error rate;
+5. API resident memory;
+6. API CPU usage.
+
+Runtime verification is pending because Docker Desktop's WSL engine stopped responding while an image layer was being committed. The application code, configuration parsing, dashboard JSON, and metrics exposition were validated independently.
+
+## 12. Phase 4 — Backup and recovery automation
+
+`scripts/docker/backup-db.ps1` runs `mysqldump` inside the private database container and writes a timestamped SQL file under `backups/`. SQL exports are ignored by Git.
+
+```powershell
+.\scripts\docker\backup-db.ps1
+```
+
+`scripts/docker/restore-db.ps1` restores into `mess_management_restore` by default. This disposable target prevents an accidental overwrite of the primary coursework database.
+
+```powershell
+.\scripts\docker\restore-db.ps1 -BackupPath .\backups\messmate-YYYYMMDD-HHMMSS.sql
+```
+
+Safety controls:
+
+- only `.sql` files are accepted;
+- target database names are restricted to letters, digits, and underscores;
+- the default restore target is separate from the primary database;
+- restoring the primary database requires an explicit switch;
+- interactive confirmation requires typing `RESTORE`;
+- backup output is constrained to the repository;
+- failed or empty backups are removed.
+
+## 13. Phase 5 — Continuous integration
+
+`.github/workflows/cloud-coursework-ci.yml` runs for coursework-branch pushes and relevant pull requests. A fresh GitHub-hosted Ubuntu runner performs:
+
+1. frontend dependency installation, lint, and production build;
+2. backend production dependency installation and security audit;
+3. Compose configuration validation, including the observability profile;
+4. frontend and API Docker image builds.
+
+CI does not deploy the application and receives only disposable validation values. It requires no production secrets.
+
+## 14. Second Docker Desktop incident
+
+During the first observability build, Grafana and Prometheus images downloaded successfully, but Docker stalled while committing a very small API image layer. The Docker API then returned HTTP 500 and the WSL command layer stopped responding.
+
+The build operation was cancelled without deleting containers or volumes. Restarting the Windows WSL service requires elevated permission that is unavailable to this development session. The next local verification must therefore begin after Docker Desktop/WSL is restarted by the signed-in user or after Windows restarts.
+
+This is a host virtualization problem, not a MessMate application failure. The distinction is supported by successful static validation and by the previously verified core containers.

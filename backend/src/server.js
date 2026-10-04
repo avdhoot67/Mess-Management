@@ -9,6 +9,7 @@ const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
 
 const pool = require('./config/db');
+const { databaseHealthy, observeHttpRequest, renderMetrics } = require('./observability/metrics');
 
 const authRoutes = require('./routes/authRoutes');
 const mealRoutes = require('./routes/mealRoutes');
@@ -49,6 +50,7 @@ app.use(cors({
 }));
 app.use(cookieParser());
 app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '32kb' }));
+app.use(observeHttpRequest);
 app.use('/api', (req, res, next) => {
     res.set('Cache-Control', 'no-store');
     next();
@@ -76,11 +78,14 @@ app.use('/api/feedback', feedbackRoutes);
 app.use('/api/feedback/admin/insights', feedbackInsightsRoutes);
 app.use('/api/admin-invitations', adminInvitationRoutes);
 
+app.get('/internal/metrics', renderMetrics);
+
 const PORT = process.env.PORT || 5000;
 
 app.get('/api/health', async (req, res) => {
     try {
         const [rows] = await pool.query('SELECT 1 AS connected');
+        databaseHealthy.set(rows[0].connected === 1 ? 1 : 0);
 
         res.status(200).json({
             success: true,
@@ -88,6 +93,7 @@ app.get('/api/health', async (req, res) => {
             database: rows[0].connected === 1
         });
     } catch (error) {
+        databaseHealthy.set(0);
         console.error('Database connection error:', error);
 
         res.status(500).json({
