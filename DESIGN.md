@@ -168,6 +168,14 @@ The app uses a persistent 16rem desktop sidebar and a 4rem top bar, with a singl
 
 Route pages use 24px vertical rhythm between major sections and 16px between related controls. Dashboard summaries use responsive two-to-four-column grids, while operational tables retain their columns inside an intentional horizontal overflow container on narrow screens. Calendar and context panels move from two columns to one rather than squeezing their content.
 
+### Public Entry Surface
+
+The public landing page extends the Calm Operations Desk into a persuasive surface without adopting a separate marketing identity. Its first viewport uses a midnight operational ground, concise product positioning, student registration and sign-in actions, and a large illustrative workspace that demonstrates how subscription coverage, daily meals, individual bookings, payments, and feedback remain connected.
+
+The landing page may use one scroll-linked operational chapter: on large screens the explanatory frame stays pinned while real product concepts transition in sequence; on small screens and for reduced-motion users the same content becomes a normal vertical reading flow. Motion must preserve visible content, respect `prefers-reduced-motion`, and explain the service relationship rather than decorate it.
+
+Public content must not invent testimonials, adoption metrics, prices, partner logos, or multi-mess capabilities. Public administrator registration is never offered; the primary acquisition action is student registration, while existing customers and administrators share the sign-in route.
+
 ## Elevation & Depth
 
 Depth is intentionally low and structural. White surfaces are separated from the slate workspace primarily by a 1px slate border; standard cards use a small neutral shadow, and hoverable cards add a slightly stronger soft lift. Large focused dialogs use a dark slate backdrop and a stronger shadow because they interrupt work. Subtle blurred emerald circles can orient a dashboard surface, but never substitute for content or become a decorative background treatment.

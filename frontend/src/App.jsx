@@ -5,6 +5,7 @@ import StudentLayout from './layouts/StudentLayout'
 import AdminLayout from './layouts/AdminLayout'
 
 const Login = lazy(() => import('./pages/auth/Login'))
+const Home = lazy(() => import('./pages/Home'))
 const Register = lazy(() => import('./pages/auth/Register'))
 const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'))
 const ResetPassword = lazy(() => import('./pages/auth/ResetPassword'))
@@ -25,16 +26,6 @@ const AdminPayments = lazy(() => import('./pages/admin/AdminPayments'))
 const AdminPlans = lazy(() => import('./pages/admin/AdminPlans'))
 const AdminSubscriptions = lazy(() => import('./pages/admin/AdminSubscriptions'))
 const AdminTeam = lazy(() => import('./pages/admin/AdminTeam'))
-
-function Home() {
-  return (
-    <div className="flex min-h-screen items-center justify-center">
-      <h1 className="text-3xl font-bold">
-        Mess Management
-      </h1>
-    </div>
-  )
-}
 
 function PageLoader() {
   return (
