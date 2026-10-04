@@ -366,6 +366,14 @@ Safety controls:
 
 CI does not deploy the application and receives only disposable validation values. It requires no production secrets.
 
+The first remote run completed successfully on commit `13161d9`:
+
+```text
+https://github.com/avdhoot67/Mess-Management/actions/runs/37213761050
+```
+
+This independently verified the project on a clean Ubuntu runner rather than relying only on the developer's Windows environment.
+
 ## 14. Second Docker Desktop incident
 
 During the first observability build, Grafana and Prometheus images downloaded successfully, but Docker stalled while committing a very small API image layer. The Docker API then returned HTTP 500 and the WSL command layer stopped responding.

@@ -115,13 +115,13 @@ Completed:
 - API production dependency audit found zero known vulnerabilities.
 - Metrics exposition and dashboard JSON passed static validation.
 - Backup and restore scripts passed PowerShell syntax parsing.
+- GitHub Actions run `37213761050` completed successfully on a clean Ubuntu runner.
 
 Evidence still to capture:
 
 - Grafana dashboard with generated traffic;
 - Prometheus target shown as healthy;
 - successful backup and disposable restore output;
-- successful GitHub Actions run;
 - controlled API-container recovery;
 - optional Ubuntu VM public-IP deployment.
 
