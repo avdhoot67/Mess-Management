@@ -20,20 +20,24 @@ $backupPath = Join-Path $resolvedOutputDirectory "messmate-$timestamp.sql"
 $composeArguments = @(
     'compose', '--env-file', $environmentPath,
     'exec', '-T', 'db', 'sh', '-lc',
-    'exec mysqldump --single-transaction --routines --triggers -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE"'
+    'exec mysqldump --single-transaction --no-tablespaces --routines --triggers -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE"'
 )
 
 Write-Host "Creating coursework database backup: $backupPath"
-& docker @composeArguments | Set-Content -LiteralPath $backupPath -Encoding utf8NoBOM
-
-if ($LASTEXITCODE -ne 0) {
+try {
+    & docker @composeArguments | Set-Content -LiteralPath $backupPath -Encoding utf8NoBOM
+    if ($LASTEXITCODE -ne 0) {
+        throw "Database backup failed with exit code $LASTEXITCODE."
+    }
+    if ((Get-Item -LiteralPath $backupPath).Length -eq 0) {
+        throw 'Database backup produced an empty file.'
+    }
+    if (-not (Select-String -LiteralPath $backupPath -Pattern '^-- Dump completed on ' -Quiet)) {
+        throw 'Database backup is incomplete: the dump completion marker is missing.'
+    }
+} catch {
     Remove-Item -LiteralPath $backupPath -Force -ErrorAction SilentlyContinue
-    throw "Database backup failed with exit code $LASTEXITCODE."
-}
-
-if ((Get-Item -LiteralPath $backupPath).Length -eq 0) {
-    Remove-Item -LiteralPath $backupPath -Force
-    throw 'Database backup produced an empty file.'
+    throw
 }
 
 Write-Host "Backup completed successfully: $backupPath"

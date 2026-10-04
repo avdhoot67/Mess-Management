@@ -113,16 +113,14 @@ Completed:
 - The database container was recreated and all 14 tables remained in the volume.
 - Frontend lint and production build passed.
 - API production dependency audit found zero known vulnerabilities.
-- Metrics exposition and dashboard JSON passed static validation.
-- Backup and restore scripts passed PowerShell syntax parsing.
+- Prometheus scraped the API successfully and recorded database health as `1`.
+- Grafana loaded the six-panel MessMate API Operations dashboard.
+- A fresh SQL backup restored all 14 tables into a separate test database.
+- A controlled API restart recovered to healthy status and `/api/health` returned database connectivity.
 - GitHub Actions run `37213761050` completed successfully on a clean Ubuntu runner.
 
 Evidence still to capture:
 
-- Grafana dashboard with generated traffic;
-- Prometheus target shown as healthy;
-- successful backup and disposable restore output;
-- controlled API-container recovery;
 - optional Ubuntu VM public-IP deployment.
 
 ## 10. Problems encountered and solutions
@@ -137,7 +135,15 @@ Docker Desktop originally failed because it could not remove a stale telemetry s
 
 ### WSL engine stall during monitoring build
 
-The first monitoring build stopped progressing while Docker committed an API layer. Docker's API and WSL control layer then became unresponsive. The operation was cancelled without deleting persistent resources. Final monitoring verification will resume after the Windows virtualization layer is restarted with the required user privilege.
+The first monitoring build stopped progressing while Docker committed an API layer. Docker's API and WSL control layer then became unresponsive. The operation was cancelled without deleting persistent resources. After Docker Desktop recovered, the build completed and all five services became healthy.
+
+### Monitoring ports did not publish
+
+Prometheus and Grafana were healthy inside Docker, but Windows could not reach their localhost ports because they joined only the internal network. Attaching them to the edge network enabled the loopback-bound ports. The API and database remained private.
+
+### Backup and restore scripts needed runtime corrections
+
+The first database dump printed a missing `PROCESS` privilege warning. The command now omits tablespace details and checks for the dump completion marker. The restore command initially had shell quoting errors and used an account that could not create a new database. Corrected quoting and the container's root account allowed a safe restore into `mess_management_restore` with all 14 tables present.
 
 ## 11. Security decisions
 

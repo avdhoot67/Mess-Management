@@ -329,7 +329,11 @@ The provisioned **MessMate API Operations** dashboard contains:
 5. API resident memory;
 6. API CPU usage.
 
-Runtime verification is pending because Docker Desktop's WSL engine stopped responding while an image layer was being committed. The application code, configuration parsing, dashboard JSON, and metrics exposition were validated independently.
+Runtime verification is complete after Docker Desktop recovered. All five containers report healthy. Prometheus reports its `api:5000/internal/metrics` target as `up`; a live query returned `messmate_database_healthy = 1`. Grafana loaded the provisioned **MessMate API Operations** dashboard with six panels.
+
+On the first monitoring startup, Prometheus and Grafana were internally healthy but their Windows localhost ports were not published. Both containers were attached only to the Docker network marked `internal`. Adding the `edge` network to those two services allowed Docker to publish `127.0.0.1:9090` and `127.0.0.1:3001`. The API and MySQL remain reachable only inside Docker.
+
+Grafana initially used a temporary default password. A new random local password was added to the ignored `.env.docker` file, the Compose fallback was removed, and Grafana's stored admin password was reset to match. No usable Grafana password is committed to Git.
 
 ## 12. Phase 4 — Backup and recovery automation
 
@@ -354,6 +358,10 @@ Safety controls:
 - interactive confirmation requires typing `RESTORE`;
 - backup output is constrained to the repository;
 - failed or empty backups are removed.
+
+The first trial found two defects. MySQL's application user lacked the global `PROCESS` privilege for tablespace details, and the backup script had accepted a dump that printed an error. The dump now uses `--no-tablespaces` and requires a completion marker. The restore script's shell quoting was corrected, and it uses the database container's root account to create the disposable restore database. A fresh dump completed cleanly; the restore database then contained all 14 tables.
+
+The API container was also restarted on purpose. Compose waited until it reported healthy again, and the browser-facing `/api/health` route returned database connectivity. This demonstrates recovery of an application process while MySQL storage stays in its separate volume.
 
 ## 13. Phase 5 — Continuous integration
 
@@ -380,4 +388,4 @@ During the first observability build, Grafana and Prometheus images downloaded s
 
 The build operation was cancelled without deleting containers or volumes. Restarting the Windows WSL service requires elevated permission that is unavailable to this development session. The next local verification must therefore begin after Docker Desktop/WSL is restarted by the signed-in user or after Windows restarts.
 
-This is a host virtualization problem, not a MessMate application failure. The distinction is supported by successful static validation and by the previously verified core containers.
+This was a host virtualization problem. After Docker Desktop recovered, the same build completed, and all five services passed their health checks.

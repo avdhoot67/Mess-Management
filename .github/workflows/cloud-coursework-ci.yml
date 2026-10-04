@@ -24,6 +24,7 @@ jobs:
       MYSQL_USER: messmate_ci
       MYSQL_PASSWORD: ci-app-password-not-used
       JWT_SECRET: ci-only-jwt-secret-with-more-than-thirty-two-characters
+      GRAFANA_ADMIN_PASSWORD: ci-only-dashboard-password-not-used
     steps:
       - name: Check out repository
         uses: actions/checkout@v4

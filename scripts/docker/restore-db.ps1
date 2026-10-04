@@ -33,14 +33,15 @@ if (-not $Force) {
     }
 }
 
-$createDatabase = "CREATE DATABASE IF NOT EXISTS ``$TargetDatabase``;"
-& docker compose --env-file $environmentPath exec -T db sh -lc "exec mysql -u\"`$MYSQL_USER\" -p\"`$MYSQL_PASSWORD\" -e '$createDatabase'"
+$createCommand = 'exec mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "CREATE DATABASE IF NOT EXISTS ' + $TargetDatabase + '"'
+& docker compose --env-file $environmentPath exec -T db sh -lc $createCommand
 if ($LASTEXITCODE -ne 0) {
     throw "Could not create target database '$TargetDatabase'."
 }
 
+$restoreCommand = 'exec mysql -uroot -p"$MYSQL_ROOT_PASSWORD" ' + $TargetDatabase
 Get-Content -LiteralPath $resolvedBackupPath -Raw |
-    & docker compose --env-file $environmentPath exec -T db sh -lc "exec mysql -u\"`$MYSQL_USER\" -p\"`$MYSQL_PASSWORD\" '$TargetDatabase'"
+    & docker compose --env-file $environmentPath exec -T db sh -lc $restoreCommand
 
 if ($LASTEXITCODE -ne 0) {
     throw "Database restore failed with exit code $LASTEXITCODE."

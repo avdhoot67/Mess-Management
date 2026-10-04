@@ -49,7 +49,7 @@ Only the Nginx frontend and, when enabled, Grafana are exposed to the host. The 
 | API image | Production Node image running as a non-root user | Matches the existing Express application while improving isolation |
 | Coursework database | MySQL 8 container | Compatible with the existing `mysql2` data layer and self-contained for assessment |
 | Persistent storage | Named Docker volume | Survives container recreation |
-| Metrics | `prom-client`, Prometheus, Grafana | Demonstrates application and infrastructure observability with familiar tools |
+| Metrics | `@prometheus-io/client`, Prometheus, Grafana | Demonstrates application and infrastructure observability with familiar tools |
 | CI | GitHub Actions | Automatically validates builds and container definitions |
 | Optional cloud host | One Ubuntu VM running Docker Compose | Demonstrates the relationship between VM virtualization and container virtualization |
 
