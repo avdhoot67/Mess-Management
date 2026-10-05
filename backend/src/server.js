@@ -20,6 +20,7 @@ const daySkipRoutes = require('./routes/daySkipRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes');
 const feedbackInsightsRoutes = require('./routes/feedbackInsightsRoutes');
 const adminInvitationRoutes = require('./routes/adminInvitationRoutes');
+const customerRoutes = require('./routes/customerRoutes');
 
 const app = express();
 
@@ -75,6 +76,7 @@ app.use('/api/skips', daySkipRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/feedback/admin/insights', feedbackInsightsRoutes);
 app.use('/api/admin-invitations', adminInvitationRoutes);
+app.use('/api/customers', customerRoutes);
 
 const PORT = process.env.PORT || 5000;
 

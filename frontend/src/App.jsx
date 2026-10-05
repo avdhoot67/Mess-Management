@@ -26,6 +26,8 @@ const AdminPayments = lazy(() => import('./pages/admin/AdminPayments'))
 const AdminPlans = lazy(() => import('./pages/admin/AdminPlans'))
 const AdminSubscriptions = lazy(() => import('./pages/admin/AdminSubscriptions'))
 const AdminTeam = lazy(() => import('./pages/admin/AdminTeam'))
+const AdminCustomers = lazy(() => import('./pages/admin/AdminCustomers'))
+const AdminCustomerDetail = lazy(() => import('./pages/admin/AdminCustomerDetail'))
 
 function PageLoader() {
   return (
@@ -85,6 +87,8 @@ function App() {
           <Route path="subscriptions" element={<AdminSubscriptions />} />
           <Route path="payments" element={<AdminPayments />} />
           <Route path="team" element={<AdminTeam />} />
+          <Route path="customers" element={<AdminCustomers />} />
+          <Route path="customers/:id" element={<AdminCustomerDetail />} />
           <Route path="account" element={<AccountSettings />} />
         </Route>
       </Routes>
