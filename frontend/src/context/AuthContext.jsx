@@ -7,7 +7,7 @@ const AuthContext = createContext(null)
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [token, setToken] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(import.meta.env.VITE_READ_ONLY_DEMO !== 'true')
 
   const completeLogin = (data) => {
     setAccessToken(data.token)
@@ -19,6 +19,15 @@ export const AuthProvider = ({ children }) => {
     let active = true
     localStorage.removeItem('token')
     localStorage.removeItem('user')
+
+    if (import.meta.env.VITE_READ_ONLY_DEMO === 'true') {
+      clearAccessToken()
+      return () => {
+        active = false
+        setAuthenticationExpiredHandler(null)
+      }
+    }
+
     setAuthenticationExpiredHandler(() => {
       if (!active) return
       clearAccessToken()

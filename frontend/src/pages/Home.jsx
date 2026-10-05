@@ -102,6 +102,8 @@ const operatingSequence = [
 const Home = () => {
   const { user, isAuthenticated } = useAuth()
   const workspacePath = user?.role === 'admin' ? '/admin' : '/student'
+  const isReadOnlyDemo = import.meta.env.VITE_READ_ONLY_DEMO === 'true'
+  const liveAppUrl = import.meta.env.VITE_LIVE_APP_URL || 'https://mess-management-ten-henna.vercel.app'
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
@@ -117,7 +119,11 @@ const Home = () => {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            {isAuthenticated ? (
+            {isReadOnlyDemo ? (
+              <a href={`${liveAppUrl}/login`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400">
+                Open live app <ArrowRight size={16} aria-hidden="true" />
+              </a>
+            ) : isAuthenticated ? (
               <Link to={workspacePath} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400">
                 Open workspace <ArrowRight size={16} aria-hidden="true" />
               </Link>
@@ -135,6 +141,12 @@ const Home = () => {
         </nav>
       </header>
 
+      {isReadOnlyDemo && (
+        <div className="border-b border-emerald-400/20 bg-emerald-950 px-5 py-3 text-center text-sm text-emerald-100 sm:px-8">
+          This cloud deployment is a read-only preview. Account actions are available in the live app.
+        </div>
+      )}
+
       <section className="relative overflow-hidden border-b border-white/10">
         <div className="pointer-events-none absolute -left-24 top-16 h-72 w-72 rounded-full bg-emerald-950/70 blur-3xl" aria-hidden="true" />
         <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-[1500px] items-center gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[0.9fr_1.1fr] lg:px-12 lg:py-14 xl:gap-16">
@@ -148,7 +160,16 @@ const Home = () => {
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              {isAuthenticated ? (
+              {isReadOnlyDemo ? (
+                <>
+                  <a href={`${liveAppUrl}/login`} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-emerald-500 px-6 text-base font-semibold text-slate-950 transition hover:bg-emerald-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400">
+                    Open live app <ArrowRight size={18} aria-hidden="true" />
+                  </a>
+                  <a href="#how-it-works" className="inline-flex min-h-12 items-center justify-center rounded-lg border border-slate-500 px-6 text-base font-semibold text-white transition hover:border-slate-300 hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400">
+                    Explore the preview
+                  </a>
+                </>
+              ) : isAuthenticated ? (
                 <Link to={workspacePath} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-emerald-500 px-6 text-base font-semibold text-slate-950 transition hover:bg-emerald-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400">
                   Open your workspace <ArrowRight size={18} aria-hidden="true" />
                 </Link>
@@ -230,7 +251,9 @@ const Home = () => {
             <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">Open MessMate to see the service, your status and the action that comes next.</p>
           </div>
           <div className="flex shrink-0 flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row">
-            {isAuthenticated ? (
+            {isReadOnlyDemo ? (
+              <a href={`${liveAppUrl}/login`} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-emerald-500 px-6 font-semibold text-slate-950 transition hover:bg-emerald-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400">Open live app <ArrowRight size={18} aria-hidden="true" /></a>
+            ) : isAuthenticated ? (
               <Link to={workspacePath} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-emerald-500 px-6 font-semibold text-slate-950 transition hover:bg-emerald-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400">Open workspace <ArrowRight size={18} aria-hidden="true" /></Link>
             ) : (
               <>
@@ -247,8 +270,14 @@ const Home = () => {
           <p className="font-semibold text-white">Mess<span className="text-emerald-400">Mate</span></p>
           <p>A single-mess operations platform for customers and teams.</p>
           <div className="flex gap-5">
-            <Link to="/login" className="transition hover:text-white">Sign in</Link>
-            <Link to="/register" className="transition hover:text-white">Student registration</Link>
+            {isReadOnlyDemo ? (
+              <a href={`${liveAppUrl}/login`} className="transition hover:text-white">Open live app</a>
+            ) : (
+              <>
+                <Link to="/login" className="transition hover:text-white">Sign in</Link>
+                <Link to="/register" className="transition hover:text-white">Student registration</Link>
+              </>
+            )}
           </div>
         </div>
       </footer>

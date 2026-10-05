@@ -445,3 +445,34 @@ ssh -i "C:\Users\Avdhoot Shinde\Downloads\ssh-key-2026-10-05.key" -N -L 127.0.0.
 While this SSH session remains open, `http://localhost:18080` on Windows reaches the VM's containerized frontend. Port 18080 avoids colliding with the existing Windows Docker lab on port 8080. The VM's initial generated `.env.docker` used port 8080 and must be changed to 18080 before testing the tunnel; the generator now defaults to 18080 for new VM setups. This is a **private validation step**, not the final public-IP demo. The local lab and VM lab each have their own `.env.docker` and database volume. Do not transfer the Windows lab's `.env.docker` or any production credentials to the VM.
 
 The private VM run passed: MySQL, the API, and the frontend all reported healthy; `curl http://127.0.0.1:18080/api/health` returned `database: true`; and the student opened the MessMate landing page in the Windows browser through the SSH tunnel. An initial terminal paste inserted stray control characters before `sed`, so the first attempt did not run; the corrected command changed only `MESSMATE_HTTP_PORT` to 18080 and all services remained healthy. This proves that the same three-service application can run on the Ubuntu ARM VM. The VM is **not publicly serving the site yet**, and HTTPS/Google/email have not been configured for the coursework VM.
+
+## 17. Read-only public HTTPS demo (prepared, not yet verified on OCI)
+
+The student chose to make only a **read-only landing-page preview** public. The complete application still runs privately on the VM and can be demonstrated through the SSH tunnel. This distinction matters: the private stack's API currently uses local-development settings and its separate MySQL database has no production account/email configuration. It must not be exposed as an internet-facing sign-in system.
+
+`compose.public-demo.yaml` adds two services to the existing Compose project:
+
+| Service | Purpose | Network access |
+| --- | --- | --- |
+| `public-demo` | Separately built static landing page, visibly labelled read-only | `edge` only; no published port; no API or database access |
+| `https` | Caddy reverse proxy with automatic HTTPS | Publishes TCP 80 and 443; reaches `public-demo` on `edge` |
+
+The private `frontend`, `api`, and `db` services retain their existing configuration. The public Nginx configuration serves only the landing page and its static assets. `/login`, `/register`, and `/api/*` return 404 on the public host. Public calls to action point to the existing live Vercel application for account actions. A successful public page load will demonstrate container deployment and HTTPS on a cloud VM, **not** public VM login, a highly available architecture, or production-readiness of the VM API.
+
+The proposed zero-cost host is `80.225.234.66.nip.io`. This is an IP-derived third-party DNS name, **not an owned custom domain**; it resolves to the current VM public IP and will need updating if that IP changes. Caddy can request and renew a certificate only once public DNS, OCI network rules, host firewall, and inbound TCP ports 80/443 permit validation. Neither certificate issuance nor external reachability has been verified yet.
+
+### Student-run deployment checklist
+
+1. In OCI, on the security list attached to the VM's **public subnet**, add two new **stateful** ingress rules: source `0.0.0.0/0`, protocol TCP, source port All, destination port `80` and then `443`. Keep SSH restricted to the student's `/32`; do not expose ports 18080, 5000, 3306, 9090, or 3001. Check the instance's host firewall too.
+2. SSH to the VM, `cd ~/messmate-cloud-lab`, and run `git pull --ff-only`. Keep its existing, ignored `.env.docker`; do not rerun the environment generator or copy secrets from Windows/production.
+3. Validate and start the combined project:
+
+   ```bash
+   sudo docker compose -f compose.yaml -f compose.public-demo.yaml --env-file .env.docker config --quiet
+   sudo docker compose -f compose.yaml -f compose.public-demo.yaml --env-file .env.docker up --build -d --wait
+   sudo docker compose -f compose.yaml -f compose.public-demo.yaml --env-file .env.docker ps
+   ```
+
+4. Test `https://80.225.234.66.nip.io/` from a separate browser/network. Confirm the page says read-only, its live-app CTA goes to Vercel, and `https://80.225.234.66.nip.io/api/health` returns 404. Independently confirm the private `curl http://127.0.0.1:18080/api/health` still succeeds on the VM. If HTTPS is not ready, inspect `sudo docker compose -f compose.yaml -f compose.public-demo.yaml --env-file .env.docker logs https --tail=100` before changing firewall or DNS settings.
+
+This section records the planned procedure; until the student completes it and reports the external HTTPS result, the public VM deployment remains **unverified**.
