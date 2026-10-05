@@ -58,5 +58,6 @@ Admin-only customer profile containing safe account fields, subscription history
 - [x] Run desktop/mobile visual inspection and Impeccable detector/reviewer.
 - [x] Commit and push the feature branch for review.
 - [x] Merge the tested feature into `main` after approval.
-- [ ] Deploy to production only after a separate deployment approval.
+- [x] Deploy the tested feature to the existing Vercel and Render production services after approval (`41b5549`).
+- [x] Confirm no TiDB migration is required and verify the live backend/database health check.
 
