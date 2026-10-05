@@ -276,6 +276,10 @@ The final classroom demonstration will show:
 
 After the local scope is complete and documented, evaluate the remaining time. If enough time remains, deploy the Compose stack to a separate Ubuntu VM. This must use new coursework secrets, HTTPS, restricted firewall rules, and its own database volume. It must not replace or connect to the existing Vercel, Render, or TiDB deployment.
 
+The selected extension is an Oracle Always Free eligible Ubuntu VM. The VM has not been created yet. The next prerequisite is the student's OCI account and an available Always Free Ampere A1 shape. Before exposing the app, the local HTTP/development Compose settings must be replaced with HTTPS and cloud-safe settings. A DNS name derived from the VM's public IP and an automatically renewed certificate are possible without buying a domain, but issuance must be verified on the actual VM. Only ports 80/443 and restricted SSH should be public; monitoring, API, and database ports remain private.
+
+The live demonstration should distinguish three ideas: a container restart shows **process recovery**, a named volume and tested SQL dump show **data persistence and restore**, and Prometheus/Grafana show **failure detection**. None of these alone proves high availability. The present single-VM/single-MySQL setup can have downtime when the host or database fails. Horizontal API scaling is a possible later experiment, not a feature already demonstrated.
+
 ## 10. Next implementation step
 
 Complete the observability runtime check after Docker Desktop's WSL engine is restarted, then exercise the backup/restore scripts against the disposable restore database.
@@ -389,3 +393,9 @@ During the first observability build, Grafana and Prometheus images downloaded s
 The build operation was cancelled without deleting containers or volumes. Restarting the Windows WSL service requires elevated permission that is unavailable to this development session. The next local verification must therefore begin after Docker Desktop/WSL is restarted by the signed-in user or after Windows restarts.
 
 This was a host virtualization problem. After Docker Desktop recovered, the same build completed, and all five services passed their health checks.
+
+## 15. Synchronizing a product feature from `main`
+
+The primary MessMate branch gained an admin customer directory while the coursework branch was in progress. Its frontend pages, admin navigation, API routes, and integration checks were merged into the coursework branch without changing the database schema or replacing the container configuration. The shared `backend/src/server.js` retained both the customer route and the coursework metrics endpoint.
+
+The merged frontend passed lint and production build. Both Docker application images rebuilt, all five services became healthy, and the browser-facing `/api/health` returned 200. The containerized integration smoke suite passed its new admin-only customer-directory checks and the rest of the application flow. In this isolated lab, Gemini is intentionally unconfigured, so the suite now expects the API's 503 configuration response instead of the 422 minimum-feedback response required when Gemini is configured. No production credentials or data were copied into Docker.

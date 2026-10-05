@@ -192,17 +192,36 @@ The first four items form the minimum defensible submission. Items five through 
 
 Do this only after the core submission works.
 
+The core local implementation and recovery checks are complete. The VM extension is now selected, but a public VM deployment has **not** yet been performed.
+
 ### Option A: Ubuntu cloud VM — recommended extension
 
-- create one free-tier or college-provided Ubuntu VM;
-- allow inbound HTTP only, plus restricted SSH;
+- create one Oracle Always Free eligible Ubuntu ARM VM (subject to capacity and account eligibility);
+- allow inbound HTTP/HTTPS, plus SSH restricted to the student's current IP;
 - install Docker Engine and the Compose plugin;
 - clone the coursework branch;
 - provide secrets through an untracked environment file;
-- run the same Compose stack;
-- document security-group rules and the public health check.
+- adapt the Compose stack for HTTPS and cloud-safe runtime settings, then run it;
+- document security-group and host-firewall rules and the public health check.
 
 This directly demonstrates a virtual machine hosting multiple isolated containers and is easier to explain than a local-only Kubernetes cluster.
+
+Do not use the local HTTP/development Compose settings for public sign-in. Keep the cloud database and credentials separate from the Vercel/Render/TiDB application. Do not open MySQL, API, Prometheus, or Grafana ports to the internet. Confirm the VM shape and boot volume are marked Always Free eligible before creating them; stop if the console estimates a charge.
+
+### What the current demo actually proves
+
+| Claim | Demonstration | Limit |
+| --- | --- | --- |
+| Container isolation | Show separate frontend, API, database, Prometheus, and Grafana containers and private networking. | Containers share the host kernel; they are not five VMs. |
+| Persistent storage | Recreate the database container and verify a test record remains in its named volume. | A lost VM/boot disk can still lose that volume. |
+| Application recovery | Restart/stop the API, show health checks and successful response after restart. | Requests can fail during recovery; this is not zero-downtime failover. |
+| Backup/restore | Restore a SQL dump into the disposable restore database and verify table/data counts. | A backup is useful only if stored and tested separately from the failed disk. |
+| Observability | Generate requests, inspect Prometheus target/metrics and Grafana charts. | Monitoring detects problems; it does not automatically fix all of them. |
+| Portability | Build/run the same application services locally and on the Ubuntu VM. | VM deployment remains pending until verified. |
+| Scaling | Explain that the stateless API could be replicated behind a load balancer; no horizontal-scaling claim yet. | Current Compose design has one API and one MySQL instance. |
+| High availability | Discuss the architecture required: multiple hosts, load balancer, shared/session-safe rate limits, replicated database, off-host backups. | One VM and one database are single points of failure. |
+
+If time remains after the VM works, add a **separate, measured scaling experiment** rather than claiming that restarting one container is scaling. Compare one versus two API replicas under load, configure actual load balancing and per-instance metrics, and document the effect of in-process rate limits. This experiment is optional and not part of the completed scope.
 
 ### Option B: Local Kubernetes — stretch extension
 
