@@ -399,3 +399,40 @@ This was a host virtualization problem. After Docker Desktop recovered, the same
 The primary MessMate branch gained an admin customer directory while the coursework branch was in progress. Its frontend pages, admin navigation, API routes, and integration checks were merged into the coursework branch without changing the database schema or replacing the container configuration. The shared `backend/src/server.js` retained both the customer route and the coursework metrics endpoint.
 
 The merged frontend passed lint and production build. Both Docker application images rebuilt, all five services became healthy, and the browser-facing `/api/health` returned 200. The containerized integration smoke suite passed its new admin-only customer-directory checks and the rest of the application flow. In this isolated lab, Gemini is intentionally unconfigured, so the suite now expects the API's 503 configuration response instead of the 422 minimum-feedback response required when Gemini is configured. No production credentials or data were copied into Docker.
+
+## 16. Oracle Cloud VM provisioned and SSH verified
+
+An Oracle Cloud Infrastructure VM named `messmate-cloud-lab` was created in the Mumbai region using the Always Free-eligible `VM.Standard.A1.Flex` shape (2 OCPUs, 8 GB memory) and Canonical Ubuntu 24.04. It uses the coursework VCN's public subnet and has a public IPv4 address. The VCN's SSH ingress rule was restricted to the student's then-current public IP instead of the entire internet. The exact rule may need updating if that IP changes.
+
+The student downloaded Oracle's SSH key pair. The first SSH attempt reached the VM but Windows OpenSSH refused the private key because the local `CodexSandboxUsers` group had inherited read access to it. Windows Explorer hid file extensions, making the private `.key` file easy to confuse with the public `.key.pub` file. After identifying the full filename in the Properties dialog, inheritance was disabled **on the private key file only** and the extra group's access was removed. SSH then succeeded with the default Ubuntu account, yielding the `ubuntu@messmate-cloud-lab` prompt.
+
+This verifies VM provisioning and remote administrative access. Docker Engine, the coursework application, HTTPS, and the public web firewall rules are **not yet configured on the VM**. The existing Vercel/Render/TiDB deployment is unaffected.
+
+The first Ubuntu commands were accidentally entered after SSH had disconnected; the `PS C:\WINDOWS\system32>` prompt meant they ran on the Windows computer, not the VM. After reconnecting, `uname -m` returned `aarch64`. `sudo apt update` and `sudo apt upgrade -y` completed, installing a newer Oracle kernel. The VM was rebooted, SSH reconnected, and `uname -r` confirmed `7.0.0-1013-oracle`. This is a useful demonstration of the difference between the local shell and a remote VM shell, and why a kernel update requires a reboot.
+
+Docker Engine and the Compose plugin were then installed from Docker's official Ubuntu `noble`/`arm64` package repository. `sudo docker run --rm hello-world` successfully pulled and ran the ARM64 test image, and `sudo docker compose version` reported Compose v5.6.0. This verifies the container runtime on the cloud VM, but does not yet mean that MessMate or HTTPS is deployed. Docker commands use `sudo`; adding `ubuntu` to the `docker` group is unnecessary and would grant that account root-equivalent Docker access.
+
+The coursework branch was cloned from GitHub onto the VM with `git clone --branch codex/cloud-virtualization-coursework --single-branch ...`. `git branch --show-current` confirmed the correct branch. No application services were started at this stage.
+
+### Private VM validation before public HTTPS
+
+The first VM application run will be accessible **only through an SSH tunnel**, not to the public internet. The Compose frontend host port is explicitly bound to `127.0.0.1:8080`; Prometheus and Grafana already use localhost bindings. Only SSH is currently allowed through the OCI security list. A separate cloud HTTPS deployment will be prepared after the VM stack passes private checks.
+
+`scripts/docker/init-lab-env.sh` creates a VM-only `.env.docker` with independent random MySQL, JWT, and Grafana credentials, owner-only file permissions, and no production credentials. It refuses to overwrite an existing file. Neither the generated values nor the file should be shared or committed.
+
+Once the VM has pulled this change, run from the repository directory:
+
+```bash
+bash scripts/docker/init-lab-env.sh
+sudo docker compose --env-file .env.docker config --quiet
+sudo docker compose --env-file .env.docker up --build -d --wait
+curl --fail http://127.0.0.1:8080/api/health
+```
+
+On the Windows computer, a separate PowerShell SSH connection can forward local port 8080 to the VM's loopback port:
+
+```powershell
+ssh -i "C:\Users\Avdhoot Shinde\Downloads\ssh-key-2026-10-05.key" -L 8080:127.0.0.1:8080 ubuntu@80.225.234.66
+```
+
+While this SSH session remains open, `http://localhost:8080` on Windows reaches the VM's containerized frontend. This is a **private validation step**, not the final public-IP demo. The local lab and VM lab each have their own `.env.docker` and database volume. Do not transfer the Windows lab's `.env.docker` or any production credentials to the VM.

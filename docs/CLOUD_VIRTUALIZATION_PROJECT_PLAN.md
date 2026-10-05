@@ -192,7 +192,7 @@ The first four items form the minimum defensible submission. Items five through 
 
 Do this only after the core submission works.
 
-The core local implementation and recovery checks are complete. The VM extension is now selected, but a public VM deployment has **not** yet been performed.
+The core local implementation and recovery checks are complete. The Oracle Ubuntu VM has been provisioned and SSH access verified, but a public VM deployment has **not** yet been performed.
 
 ### Option A: Ubuntu cloud VM — recommended extension
 
@@ -206,7 +206,7 @@ The core local implementation and recovery checks are complete. The VM extension
 
 This directly demonstrates a virtual machine hosting multiple isolated containers and is easier to explain than a local-only Kubernetes cluster.
 
-Do not use the local HTTP/development Compose settings for public sign-in. Keep the cloud database and credentials separate from the Vercel/Render/TiDB application. Do not open MySQL, API, Prometheus, or Grafana ports to the internet. Confirm the VM shape and boot volume are marked Always Free eligible before creating them; stop if the console estimates a charge.
+Do not use the local HTTP/development Compose settings for public sign-in. First validate the stack privately on the VM through an SSH tunnel with the frontend bound to `127.0.0.1:8080`; then prepare a separate HTTPS deployment before opening ports 80/443. Keep the cloud database and credentials separate from the Vercel/Render/TiDB application. Do not open MySQL, API, Prometheus, or Grafana ports to the internet. Confirm the VM shape and boot volume are marked Always Free eligible before creating them; stop if the console estimates a charge.
 
 ### What the current demo actually proves
 

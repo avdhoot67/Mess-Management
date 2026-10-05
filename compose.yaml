@@ -61,7 +61,7 @@ services:
         VITE_API_URL: /api
     restart: unless-stopped
     ports:
-      - "${MESSMATE_HTTP_PORT:-8080}:80"
+      - "127.0.0.1:${MESSMATE_HTTP_PORT:-8080}:80"
     depends_on:
       api:
         condition: service_healthy
