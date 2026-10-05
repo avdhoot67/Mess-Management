@@ -16,7 +16,7 @@ fi
 
 umask 077
 {
-    printf 'MESSMATE_HTTP_PORT=8080\n'
+    printf 'MESSMATE_HTTP_PORT=18080\n'
     printf 'PROMETHEUS_PORT=9090\n'
     printf 'GRAFANA_PORT=3001\n'
     printf 'GRAFANA_ADMIN_PASSWORD=%s\n' "$(openssl rand -hex 32)"

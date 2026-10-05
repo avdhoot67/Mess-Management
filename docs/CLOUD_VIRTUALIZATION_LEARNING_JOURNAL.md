@@ -416,7 +416,7 @@ The coursework branch was cloned from GitHub onto the VM with `git clone --branc
 
 ### Private VM validation before public HTTPS
 
-The first VM application run will be accessible **only through an SSH tunnel**, not to the public internet. The Compose frontend host port is explicitly bound to `127.0.0.1:8080`; Prometheus and Grafana already use localhost bindings. Only SSH is currently allowed through the OCI security list. A separate cloud HTTPS deployment will be prepared after the VM stack passes private checks.
+The first VM application run will be accessible **only through an SSH tunnel**, not to the public internet. The Compose frontend host port is explicitly bound to `127.0.0.1`; Prometheus and Grafana already use localhost bindings. Only SSH is currently allowed through the OCI security list. A separate cloud HTTPS deployment will be prepared after the VM stack passes private checks.
 
 `scripts/docker/init-lab-env.sh` creates a VM-only `.env.docker` with independent random MySQL, JWT, and Grafana credentials, owner-only file permissions, and no production credentials. It refuses to overwrite an existing file. Neither the generated values nor the file should be shared or committed.
 
@@ -426,13 +426,20 @@ Once the VM has pulled this change, run from the repository directory:
 bash scripts/docker/init-lab-env.sh
 sudo docker compose --env-file .env.docker config --quiet
 sudo docker compose --env-file .env.docker up --build -d --wait
-curl --fail http://127.0.0.1:8080/api/health
+curl --fail http://127.0.0.1:18080/api/health
+```
+
+For the VM where `.env.docker` was already generated with `MESSMATE_HTTP_PORT=8080`, change only that one setting before restarting the stack:
+
+```bash
+sed -i 's/^MESSMATE_HTTP_PORT=8080$/MESSMATE_HTTP_PORT=18080/' .env.docker
+sudo docker compose --env-file .env.docker up -d --wait
 ```
 
 On the Windows computer, a separate PowerShell SSH connection can forward local port 8080 to the VM's loopback port:
 
 ```powershell
-ssh -i "C:\Users\Avdhoot Shinde\Downloads\ssh-key-2026-10-05.key" -L 8080:127.0.0.1:8080 ubuntu@80.225.234.66
+ssh -i "C:\Users\Avdhoot Shinde\Downloads\ssh-key-2026-10-05.key" -N -L 127.0.0.1:18080:127.0.0.1:18080 ubuntu@80.225.234.66
 ```
 
-While this SSH session remains open, `http://localhost:8080` on Windows reaches the VM's containerized frontend. This is a **private validation step**, not the final public-IP demo. The local lab and VM lab each have their own `.env.docker` and database volume. Do not transfer the Windows lab's `.env.docker` or any production credentials to the VM.
+While this SSH session remains open, `http://localhost:18080` on Windows reaches the VM's containerized frontend. Port 18080 avoids colliding with the existing Windows Docker lab on port 8080. The VM's initial generated `.env.docker` used port 8080 and must be changed to 18080 before testing the tunnel; the generator now defaults to 18080 for new VM setups. This is a **private validation step**, not the final public-IP demo. The local lab and VM lab each have their own `.env.docker` and database volume. Do not transfer the Windows lab's `.env.docker` or any production credentials to the VM.
