@@ -57,5 +57,6 @@ Admin-only customer profile containing safe account fields, subscription history
 - [x] Run frontend lint and production build.
 - [x] Run desktop/mobile visual inspection and Impeccable detector/reviewer.
 - [x] Commit and push the feature branch for review.
-- [ ] Merge and deploy only after explicit approval.
+- [x] Merge the tested feature into `main` after approval.
+- [ ] Deploy to production only after a separate deployment approval.
 
