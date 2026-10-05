@@ -101,6 +101,8 @@ const cleanup = async () => {
         expectStatus(adminLogin, 200, 'Admin login');
         const studentAdminAccess = await request('/payments/admin', { token: refreshed.data.token });
         expectStatus(studentAdminAccess, 403, 'Student admin-access rejection');
+        const studentCustomerAccess = await request('/customers', { token: refreshed.data.token });
+        expectStatus(studentCustomerAccess, 403, 'Student customer-directory rejection');
 
         const [planResult] = await pool.query(
             `INSERT INTO mess_plans (plan_name, price, duration_days, description, created_by)
@@ -138,6 +140,22 @@ const cleanup = async () => {
             body: { meal_id: futureMeal.insertId, transaction_reference: `${marker}-BOOK` }
         });
         expectStatus(booking, 201, 'Individual booking payment submission');
+
+        const customerDirectory = await request(`/customers?search=${encodeURIComponent(studentEmail)}&segment=both`, {
+            token: adminLogin.data.token
+        });
+        expectStatus(customerDirectory, 200, 'Admin customer-directory access');
+        assert.equal(customerDirectory.data.customers.length, 1, 'Customer directory should find the integration student');
+        assert.equal(customerDirectory.data.customers[0].service_state, 'both');
+        assert.equal(customerDirectory.data.customers[0].password, undefined, 'Customer list must not expose password hashes');
+        assert.equal(customerDirectory.data.customers[0].google_sub, undefined, 'Customer list must not expose Google identifiers');
+
+        const customerProfile = await request(`/customers/${studentId}`, { token: adminLogin.data.token });
+        expectStatus(customerProfile, 200, 'Admin customer-profile access');
+        assert.equal(customerProfile.data.customer.email, studentEmail);
+        assert.equal(customerProfile.data.summary.current_subscription.subscription_id, subscriptionRequest.data.subscription.subscription_id);
+        assert.equal(customerProfile.data.summary.upcoming_booking_count, 1);
+        assert.equal(customerProfile.data.customer.session_version, undefined, 'Customer profile must not expose session state');
 
         const receipt = await request(`/payments/${booking.data.payment.payment_id}/receipt`, { token: refreshed.data.token });
         expectStatus(receipt, 200, 'Student payment receipt');
@@ -177,7 +195,11 @@ const cleanup = async () => {
             method: 'POST', token: adminLogin.data.token,
             body: { start_date: '2001-01-01', end_date: '2001-01-01' }
         });
-        expectStatus(insight, 422, 'AI minimum-feedback guard');
+        if (process.env.AI_PROVIDER === 'gemini' && process.env.GEMINI_API_KEY) {
+            expectStatus(insight, 422, 'AI minimum-feedback guard');
+        } else {
+            expectStatus(insight, 503, 'Unconfigured AI rejection');
+        }
 
         const logout = await request('/auth/logout', { method: 'POST', cookie: refreshed.cookie });
         expectStatus(logout, 200, 'Logout');
